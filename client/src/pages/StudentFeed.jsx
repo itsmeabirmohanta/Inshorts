@@ -1,15 +1,11 @@
-import React, { useEffect, useState, useCallback, useRef, useMemo } from 'react';
+import React, { useEffect, useState } from 'react';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import categories from '../constants/categories';
 
 const StudentFeed = () => {
   const [announcements, setAnnouncements] = useState([]);
   const [filteredAnnouncements, setFilteredAnnouncements] = useState([]);
-  const [page, setPage] = useState(1);
-  const [hasMore, setHasMore] = useState(true);
-  const loadingRef = useRef(false);
   
   // FIX 1: Ensure default state matches the first category
   const [selectedCategory, setSelectedCategory] = useState('All'); 
@@ -17,34 +13,22 @@ const StudentFeed = () => {
   const navigate = useNavigate();
 
   // FIX 2: Variable name consistency
-  // categories imported from shared constant
-
-  const fetchAnnouncements = useCallback(async (opts = { reset: false }) => {
-    if (loadingRef.current) return;
-    loadingRef.current = true;
-    try {
-      const p = opts.reset ? 1 : page;
-      const res = await axios.get('http://localhost:5001/api/announcements', { params: { page: p, limit: 10, category: selectedCategory } });
-      const payload = res.data;
-      if (opts.reset) {
-        setAnnouncements(payload.data);
-        setPage(2);
-      } else {
-        setAnnouncements(prev => [...prev, ...payload.data]);
-        setPage(prev => prev + 1);
-      }
-      setHasMore(payload.page < payload.totalPages);
-    } catch (err) {
-      console.error(err);
-    } finally {
-      loadingRef.current = false;
-    }
-  }, [page, selectedCategory]);
+  const categories = ['All', 'Academic', 'Administrative/Misc', 'Co-curricular/Sports/Cultural', 'Placement', 'Benefits'];
 
   useEffect(() => {
-    // initial load or when category changes
-    fetchAnnouncements({ reset: true });
-  }, [fetchAnnouncements, selectedCategory]);
+    // Replace with your actual API endpoint
+    const fetchAnnouncements = async () => {
+      try {
+        const res = await axios.get('http://localhost:5001/api/announcements');
+        setAnnouncements(res.data);
+        // Initialize filtered list with all data
+        setFilteredAnnouncements(res.data); 
+      } catch (err) {
+        console.error(err);
+      }
+    };
+    fetchAnnouncements();
+  }, []);
 
   // FIX 3: Fixed Filter Logic to match 'All'
   useEffect(() => {
@@ -55,54 +39,10 @@ const StudentFeed = () => {
     }
   }, [selectedCategory, announcements]);
 
-  // Debounce category changes to avoid rapid requests
-  const categoryTimeout = useRef(null);
-  const handleCategoryChange = useCallback((cat) => {
-    clearTimeout(categoryTimeout.current);
-    categoryTimeout.current = setTimeout(() => {
-      setSelectedCategory(cat);
-    }, 200);
-  }, []);
-
   const handleLogout = () => {
     localStorage.removeItem('user');
     navigate('/');
   };
-
-  // Memoized card to avoid re-renders
-  const AnnouncementCard = React.memo(({ item, onSelect }) => {
-    return (
-      <div className="h-full w-full snap-start flex flex-col relative">
-        {/* Image Section */}
-        <div className="h-[40%] w-full relative shrink-0">
-          <img src={item.imageUrl} alt={item.title} className="w-full h-full object-cover" />
-          <div className="absolute inset-0 bg-gradient-to-t from-black via-transparent to-transparent" />
-          <div className="absolute top-4 left-4">
-            <span className="bg-black/60 backdrop-blur-sm text-white/90 text-[10px] px-2 py-1 rounded-sm uppercase tracking-wider font-semibold">
-              {item.category || 'Notice'}
-            </span>
-          </div>
-          <div className="absolute bottom-0 left-0 w-full p-5">
-            <h2 className="text-white text-xl font-bold leading-tight drop-shadow-md line-clamp-2 font-sans">{item.title}</h2>
-          </div>
-        </div>
-        {/* Content Section */}
-        <div className="flex-1 bg-black p-5 flex flex-col min-h-0">
-          <div className="flex items-center gap-2 mb-3 shrink-0">
-            <span className="text-zinc-500 text-xs">{new Date(item.createdAt).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}</span>
-            <span className="text-zinc-600 text-[10px]">•</span>
-            <span className="text-zinc-500 text-xs">AI Summary</span>
-          </div>
-          <div className="flex-1 overflow-y-auto custom-scroll pr-2 relative">
-            <p className="text-[#d1d5db] text-[16px] leading-[1.6] text-justify font-sans font-light">{item.summary}</p>
-          </div>
-          <div className="mt-4 pt-4 shrink-0 border-t border-zinc-900">
-            <p onClick={() => onSelect(item)} className="text-zinc-400 text-xs text-center w-full pb-2 animate-pulse cursor-pointer">Tap here to read what else the notice said</p>
-          </div>
-        </div>
-      </div>
-    );
-  });
 
   if (announcements.length === 0) {
     return (
@@ -137,7 +77,7 @@ const StudentFeed = () => {
                 {categories.map((cat) => (
                   <button
                     key={cat}
-                    onClick={() => handleCategoryChange(cat)}
+                    onClick={() => setSelectedCategory(cat)}
                     className={`whitespace-nowrap text-[15px] transition-colors duration-200 ${
                       selectedCategory === cat
                         ? 'text-blue-500 font-bold' 
@@ -161,11 +101,62 @@ const StudentFeed = () => {
           </div>
 
           {/* Feed Area */}
-      <div className="flex-1 overflow-y-scroll snap-y snap-mandatory no-scrollbar bg-black">
-        {filteredAnnouncements.map((item) => (
-          <AnnouncementCard key={item._id} item={item} onSelect={setSelectedAnnouncement} />
-        ))}
-      </div>
+          <div className="flex-1 overflow-y-scroll snap-y snap-mandatory no-scrollbar bg-black">
+            {filteredAnnouncements.map((item) => (
+              <div key={item._id} className="h-full w-full snap-start flex flex-col relative">
+                
+                {/* Image Section */}
+                <div className="h-[40%] w-full relative shrink-0">
+                  <img 
+                    src={item.imageUrl} 
+                    alt={item.title} 
+                    className="w-full h-full object-cover"
+                  />
+                  <div className="absolute inset-0 bg-gradient-to-t from-black via-transparent to-transparent" />
+                  
+                  {/* Category Tag */}
+                  <div className="absolute top-4 left-4">
+                     <span className="bg-black/60 backdrop-blur-sm text-white/90 text-[10px] px-2 py-1 rounded-sm uppercase tracking-wider font-semibold">
+                      {item.category || 'Notice'}
+                     </span>
+                  </div>
+
+                  <div className="absolute bottom-0 left-0 w-full p-5">
+                     <h2 className="text-white text-xl font-bold leading-tight drop-shadow-md line-clamp-2 font-sans">
+                      {item.title}
+                    </h2>
+                  </div>
+                </div>
+
+                {/* Content Section */}
+                <div className="flex-1 bg-black p-5 flex flex-col min-h-0">
+                  <div className="flex items-center gap-2 mb-3 shrink-0">
+                    <span className="text-zinc-500 text-xs">
+                      {new Date(item.createdAt).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
+                    </span>
+                    <span className="text-zinc-600 text-[10px]">•</span>
+                    <span className="text-zinc-500 text-xs">AI Summary</span>
+                  </div>
+                  
+                  {/* Summary Text */}
+                  <div className="flex-1 overflow-y-auto custom-scroll pr-2 relative">
+                    <p className="text-[#d1d5db] text-[16px] leading-[1.6] text-justify font-sans font-light">
+                      {item.summary}
+                    </p>
+                  </div>
+                  
+                  <div className="mt-4 pt-4 shrink-0 border-t border-zinc-900">
+                    <p 
+                      onClick={() => setSelectedAnnouncement(item)}
+                      className="text-zinc-400 text-xs text-center w-full pb-2 animate-pulse cursor-pointer"
+                    >
+                      Tap here to read what else the notice said
+                    </p>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
         </div>
 
         {/* ================= DESKTOP VIEW ================= */}
@@ -231,14 +222,6 @@ const StudentFeed = () => {
                 </div>
               </div>
             ))}
-          </div>
-
-          <div className="p-4 text-center">
-            {hasMore ? (
-              <button onClick={() => fetchAnnouncements()} className="px-4 py-2 bg-white/10 text-white rounded">Load more</button>
-            ) : (
-              <span className="text-zinc-500 text-sm">No more announcements</span>
-            )}
           </div>
         </div>
 

@@ -11,6 +11,25 @@ const announcementSchema = new mongoose.Schema({
     enum: ['All', 'Academic', 'Administrative/Misc', 'Co-curricular/Sports/Cultural', 'Placement', 'Benefits'],
     default: 'All'
   },
+  audience: {
+    type: String,
+    enum: ['Faculty', 'Students', 'Both'],
+    default: 'Both'
+  },
+  students: [
+    {
+      name: String,
+      regId: String,
+      email: String
+    }
+  ],
+  staff: [
+    {
+      name: String,
+      staffId: String,
+      email: String
+    }
+  ],
   authorId: { type: String, required: true }, // ID of the teacher who created it
   createdAt: { type: Date, default: Date.now },
 });

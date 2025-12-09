@@ -2,7 +2,8 @@ import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import categories from '../constants/categories';
+import Papa from 'papaparse';
+import * as XLSX from 'xlsx';
 
 const TeacherDashboard = () => {
   const [announcements, setAnnouncements] = useState([]);
@@ -11,6 +12,9 @@ const TeacherDashboard = () => {
   const [summary, setSummary] = useState('');
   const [tags, setTags] = useState(['', '', '']);
   const [category, setCategory] = useState('All');
+  const [audience, setAudience] = useState('Both');
+  const [studentsList, setStudentsList] = useState([]);
+  const [staffList, setStaffList] = useState([]);
   const [loading, setLoading] = useState(false);
   const [editingId, setEditingId] = useState(null);
   const [showForm, setShowForm] = useState(false);
@@ -52,6 +56,9 @@ const TeacherDashboard = () => {
     setSummary('');
     setTags(['', '', '']);
     setCategory('All');
+    setAudience('Both');
+    setStudentsList([]);
+    setStaffList([]);
     setEditingId(null);
     setShowForm(false);
   };
@@ -68,8 +75,70 @@ const TeacherDashboard = () => {
       currentTags[2] || ''
     ]);
     setCategory(item.category || 'All');
+    setAudience(item.audience || 'Both');
+    setStudentsList(item.students || []);
+    setStaffList(item.staff || []);
     setEditingId(item._id);
     setShowForm(true);
+  };
+
+  const parseCsvOrExcel = (file) => {
+    return new Promise((resolve, reject) => {
+      const name = file.name.toLowerCase();
+      if (name.endsWith('.csv') || file.type === 'text/csv') {
+        Papa.parse(file, {
+          header: true,
+          skipEmptyLines: true,
+          complete: (results) => resolve(results.data),
+          error: (err) => reject(err)
+        });
+      } else {
+        const reader = new FileReader();
+        reader.onload = (e) => {
+          const data = new Uint8Array(e.target.result);
+          const workbook = XLSX.read(data, { type: 'array' });
+          const sheet = workbook.Sheets[workbook.SheetNames[0]];
+          const json = XLSX.utils.sheet_to_json(sheet, { defval: '' });
+          resolve(json);
+        };
+        reader.onerror = (err) => reject(err);
+        reader.readAsArrayBuffer(file);
+      }
+    });
+  };
+
+  const handleStudentsFile = async (e) => {
+    const file = e.target.files && e.target.files[0];
+    if (!file) return;
+    try {
+      const rows = await parseCsvOrExcel(file);
+      const mapped = rows.map(r => ({
+        name: r.name || r.Name || r.fullname || r.FullName || r.student_name || '',
+        regId: r.regId || r.RegId || r.reg_id || r.Reg_ID || r.RegNo || '',
+        email: r.email || r.Email || ''
+      }));
+      setStudentsList(mapped.filter(x => x.name || x.regId || x.email));
+    } catch (err) {
+      console.error('Failed to parse students file', err);
+      alert('Failed to parse students file');
+    }
+  };
+
+  const handleStaffFile = async (e) => {
+    const file = e.target.files && e.target.files[0];
+    if (!file) return;
+    try {
+      const rows = await parseCsvOrExcel(file);
+      const mapped = rows.map(r => ({
+        name: r.name || r.Name || r.fullname || r.FullName || r.staff_name || '',
+        staffId: r.staffId || r.StaffId || r.staff_id || r.Staff_ID || r.staffNo || '',
+        email: r.email || r.Email || ''
+      }));
+      setStaffList(mapped.filter(x => x.name || x.staffId || x.email));
+    } catch (err) {
+      console.error('Failed to parse staff file', err);
+      alert('Failed to parse staff file');
+    }
   };
 
   const handleDelete = async (id) => {
@@ -122,22 +191,22 @@ const TeacherDashboard = () => {
     const cleanTags = tags.filter(t => t.trim() !== '');
     
     try {
+      const payload = {
+        title,
+        description,
+        summary,
+        tags: cleanTags,
+        category,
+        audience,
+        students: studentsList,
+        staff: staffList
+      };
       if (editingId) {
-        await axios.put(`http://localhost:5001/api/announcements/${editingId}`, { 
-          title, 
-          description, 
-          summary,
-          tags: cleanTags,
-          category
-        });
+        await axios.put(`http://localhost:5001/api/announcements/${editingId}`, payload);
         alert('Announcement Updated!');
       } else {
         await axios.post('http://localhost:5001/api/announcements', { 
-          title, 
-          description, 
-          summary,
-          tags: cleanTags,
-          category,
+          ...payload,
           authorId: user.id
         });
         alert('Announcement Posted Successfully!');
@@ -220,11 +289,44 @@ const TeacherDashboard = () => {
                         onChange={(e) => setCategory(e.target.value)}
                         className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all bg-gray-50 focus:bg-white"
                       >
-                        {categories.map((c) => (
-                          <option key={c} value={c}>{c}</option>
-                        ))}
+                        <option value="All">All</option>
+                        <option value="Academic">Academic</option>
+                        <option value="Administrative/Misc">Administrative/Misc</option>
+                        <option value="Co-curricular/Sports/Cultural">Co-curricular/Sports/Cultural</option>
+                        <option value="Placement">Placement</option>
+                        <option value="Benefits">Benefits</option>
                       </select>
                       <p className="text-xs text-gray-400 mt-2">Select the category for this announcement</p>
+                    </div>
+                    <div className="col-span-2 md:col-span-1">
+                      <label className="block text-sm font-semibold text-gray-700 mb-2">Audience</label>
+                      <div className="flex items-center gap-4">
+                        <label className="inline-flex items-center gap-2">
+                          <input type="radio" name="audience" value="Students" checked={audience === 'Students'} onChange={() => setAudience('Students')} />
+                          <span className="text-sm">Students</span>
+                        </label>
+                        <label className="inline-flex items-center gap-2">
+                          <input type="radio" name="audience" value="Faculty" checked={audience === 'Faculty'} onChange={() => setAudience('Faculty')} />
+                          <span className="text-sm">Faculty</span>
+                        </label>
+                        <label className="inline-flex items-center gap-2">
+                          <input type="radio" name="audience" value="Both" checked={audience === 'Both'} onChange={() => setAudience('Both')} />
+                          <span className="text-sm">Both</span>
+                        </label>
+                      </div>
+                      <p className="text-xs text-gray-400 mt-2">Who should receive this announcement?</p>
+                    </div>
+
+                    <div className="col-span-2 md:col-span-1">
+                      <label className="block text-sm font-semibold text-gray-700 mb-2">Upload Students (CSV / XLSX)</label>
+                      <input type="file" accept=".csv, application/vnd.openxmlformats-officedocument.spreadsheetml.sheet, application/vnd.ms-excel" onChange={handleStudentsFile} className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700" />
+                      <p className="text-xs text-gray-400 mt-2">Parsed students: <strong>{studentsList.length}</strong></p>
+                    </div>
+
+                    <div className="col-span-2 md:col-span-1">
+                      <label className="block text-sm font-semibold text-gray-700 mb-2">Upload Staff (CSV / XLSX)</label>
+                      <input type="file" accept=".csv, application/vnd.openxmlformats-officedocument.spreadsheetml.sheet, application/vnd.ms-excel" onChange={handleStaffFile} className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700" />
+                      <p className="text-xs text-gray-400 mt-2">Parsed staff: <strong>{staffList.length}</strong></p>
                     </div>
                   </div>
 

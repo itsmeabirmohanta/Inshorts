@@ -5,30 +5,13 @@ const { generateSummary, generateImage } = require('../services/ai');
 
 // Get all announcements (optional filter by authorId)
 router.get('/', async (req, res) => {
-  const { authorId, category, page = 1, limit = 10 } = req.query;
+  const { authorId, category } = req.query;
   try {
-    const query = {};
+    let query = {};
     if (authorId) query.authorId = authorId;
     if (category && category !== 'All') query.category = category;
-
-    const pageNum = Math.max(1, parseInt(page, 10) || 1);
-    const perPage = Math.max(1, Math.min(100, parseInt(limit, 10) || 10));
-
-    const [total, announcements] = await Promise.all([
-      Announcement.countDocuments(query),
-      Announcement.find(query)
-        .sort({ createdAt: -1 })
-        .skip((pageNum - 1) * perPage)
-        .limit(perPage)
-    ]);
-
-    res.json({
-      total,
-      page: pageNum,
-      perPage,
-      totalPages: Math.ceil(total / perPage),
-      data: announcements
-    });
+    const announcements = await Announcement.find(query).sort({ createdAt: -1 });
+    res.json(announcements);
   } catch (err) {
     res.status(500).json({ message: err.message });
   }
@@ -36,7 +19,7 @@ router.get('/', async (req, res) => {
 
 // Create announcement (Teacher only)
 router.post('/', async (req, res) => {
-  const { title, description, tags, authorId, category, summary: manualSummary } = req.body;
+  const { title, description, tags, authorId, category, summary: manualSummary, audience, students, staff } = req.body;
   
   if (!title || !description || !authorId) {
     return res.status(400).json({ message: 'Title, description, and authorId are required' });
@@ -55,6 +38,9 @@ router.post('/', async (req, res) => {
       imageUrl,
       tags,
       category: category || 'All',
+      audience: audience || 'Both',
+      students: Array.isArray(students) ? students : [],
+      staff: Array.isArray(staff) ? staff : [],
       authorId
     });
 
@@ -67,7 +53,7 @@ router.post('/', async (req, res) => {
 
 // Update announcement
 router.put('/:id', async (req, res) => {
-  const { title, description, tags, category, summary: manualSummary } = req.body;
+  const { title, description, tags, category, summary: manualSummary, audience, students, staff } = req.body;
   try {
     const announcement = await Announcement.findById(req.params.id);
     if (!announcement) return res.status(404).json({ message: 'Announcement not found' });
@@ -96,6 +82,9 @@ router.put('/:id', async (req, res) => {
     announcement.originalDescription = description || announcement.originalDescription;
     announcement.tags = tags || announcement.tags;
     announcement.category = category || announcement.category;
+    announcement.audience = audience || announcement.audience;
+    announcement.students = Array.isArray(students) ? students : announcement.students;
+    announcement.staff = Array.isArray(staff) ? staff : announcement.staff;
     announcement.summary = summary;
     announcement.imageUrl = imageUrl;
 
