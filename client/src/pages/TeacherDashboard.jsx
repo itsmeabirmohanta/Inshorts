@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
+import categories from '../constants/categories';
 
 const TeacherDashboard = () => {
   const [announcements, setAnnouncements] = useState([]);
@@ -56,7 +57,6 @@ const TeacherDashboard = () => {
   };
 
   const handleEdit = (item) => {
-    setTitle(item.title);
     setTitle(item.title);
     setDescription(item.originalDescription);
     setSummary(item.summary);
@@ -220,12 +220,9 @@ const TeacherDashboard = () => {
                         onChange={(e) => setCategory(e.target.value)}
                         className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all bg-gray-50 focus:bg-white"
                       >
-                        <option value="All">All</option>
-                        <option value="Academic">Academic</option>
-                        <option value="Administrative/Misc">Administrative/Misc</option>
-                        <option value="Co-curricular/Sports/Cultural">Co-curricular/Sports/Cultural</option>
-                        <option value="Placement">Placement</option>
-                        <option value="Benefits">Benefits</option>
+                        {categories.map((c) => (
+                          <option key={c} value={c}>{c}</option>
+                        ))}
                       </select>
                       <p className="text-xs text-gray-400 mt-2">Select the category for this announcement</p>
                     </div>

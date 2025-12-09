@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
+import categories from '../constants/categories';
 
 const StudentFeed = () => {
   const [announcements, setAnnouncements] = useState([]);
@@ -13,7 +14,7 @@ const StudentFeed = () => {
   const navigate = useNavigate();
 
   // FIX 2: Variable name consistency
-  const categories = ['All', 'Academic', 'Administrative/Misc', 'Co-curricular/Sports/Cultural', 'Placement', 'Benefits'];
+  // categories imported from shared constant
 
   useEffect(() => {
     // Replace with your actual API endpoint
