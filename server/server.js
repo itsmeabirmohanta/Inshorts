@@ -18,13 +18,41 @@ app.use((req, res, next) => {
 });
 app.use(express.json());
 
-// Database Connection
-mongoose.connect(process.env.MONGO_URI || 'mongodb://localhost:27017/inshorts-uni')
+// Database Connection (improved diagnostics)
+const MONGO_URI = process.env.MONGO_URI || 'mongodb://localhost:27017/inshorts-uni';
+
+// Mask URI for logs (do not print credentials)
+const maskUri = (uri) => {
+  try {
+    // keep protocol and host, hide auth
+    return uri.replace(/:(.*)@/, ':****@');
+  } catch (e) {
+    return 'mongodb://<masked>';
+  }
+};
+
+console.log('Connecting to MongoDB at', maskUri(MONGO_URI));
+
+// Recommended options; increase serverSelectionTimeoutMS for slower networks
+mongoose.connect(MONGO_URI, {
+  // useNewUrlParser and useUnifiedTopology are accepted; mongoose v6+ uses them by default
+  serverSelectionTimeoutMS: 30000, // 30s timeout for server selection
+  socketTimeoutMS: 45000
+})
 .then(() => {
   console.log('MongoDB Connected');
   seedUsers();
 })
-.catch(err => console.log(err));
+.catch(err => {
+  console.error('Mongoose connection error:');
+  console.error(err && err.message ? err.message : err);
+  console.error('Full error: ', err);
+});
+
+// Connection event listeners for additional diagnostics
+mongoose.connection.on('connected', () => console.log('Mongoose event: connected'));
+mongoose.connection.on('error', (err) => console.error('Mongoose event: error', err && err.message));
+mongoose.connection.on('disconnected', () => console.warn('Mongoose event: disconnected'));
 
 // Seed Users
 const seedUsers = async () => {
