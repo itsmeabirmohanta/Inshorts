@@ -5,13 +5,30 @@ const { generateSummary, generateImage } = require('../services/ai');
 
 // Get all announcements (optional filter by authorId)
 router.get('/', async (req, res) => {
-  const { authorId, category } = req.query;
+  const { authorId, category, page = 1, limit = 10 } = req.query;
   try {
-    let query = {};
+    const query = {};
     if (authorId) query.authorId = authorId;
     if (category && category !== 'All') query.category = category;
-    const announcements = await Announcement.find(query).sort({ createdAt: -1 });
-    res.json(announcements);
+
+    const pageNum = Math.max(1, parseInt(page, 10) || 1);
+    const perPage = Math.max(1, Math.min(100, parseInt(limit, 10) || 10));
+
+    const [total, announcements] = await Promise.all([
+      Announcement.countDocuments(query),
+      Announcement.find(query)
+        .sort({ createdAt: -1 })
+        .skip((pageNum - 1) * perPage)
+        .limit(perPage)
+    ]);
+
+    res.json({
+      total,
+      page: pageNum,
+      perPage,
+      totalPages: Math.ceil(total / perPage),
+      data: announcements
+    });
   } catch (err) {
     res.status(500).json({ message: err.message });
   }
