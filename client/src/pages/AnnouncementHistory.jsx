@@ -155,152 +155,197 @@ const AnnouncementHistory = () => {
         <motion.div
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="bg-white rounded-xl shadow-md p-6 mb-8 border border-slate-200"
+          className="relative bg-gradient-to-br from-white via-slate-50 to-white rounded-2xl shadow-2xl p-8 mb-8 border border-slate-200 overflow-hidden"
+          style={{
+            boxShadow: '0 20px 50px rgba(0, 0, 0, 0.08), 0 0 0 1px rgba(0, 0, 0, 0.05)'
+          }}
         >
-          <div className="space-y-4 mb-4">
+          {/* Decorative corner accents */}
+          <div className="absolute top-0 left-0 w-32 h-32 bg-gradient-to-br from-orange-400/10 to-transparent rounded-br-full"></div>
+          <div className="absolute bottom-0 right-0 w-32 h-32 bg-gradient-to-tl from-blue-400/10 to-transparent rounded-tl-full"></div>
+          
+          <div className="relative z-10 space-y-6">
+            {/* Header */}
+            <div className="text-center mb-2">
+              <h2 className="text-2xl font-bold bg-gradient-to-r from-slate-800 to-slate-600 bg-clip-text text-transparent">
+                🔍 Search & Filter Announcements
+              </h2>
+              <p className="text-sm text-slate-500 mt-1">Find exactly what you're looking for</p>
+            </div>
+
             {/* First Row: Search By and Sort By */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               {/* Search By Dropdown */}
-              <div>
-                <label className="block text-sm font-semibold text-slate-700 mb-2">
-                  🔍 Search By:
+              <div className="group">
+                <label className="block text-sm font-bold text-slate-700 mb-3 flex items-center gap-2">
+                  <span className="text-lg">🔍</span>
+                  <span>Search By</span>
                 </label>
-                <select
-                  value={searchBy}
-                  onChange={(e) => setSearchBy(e.target.value)}
-                  className="w-full px-4 py-3 border-2 border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none bg-white text-slate-900 transition-all"
-                >
-                  {searchOptions.map((option) => (
-                    <option key={option.value} value={option.value}>
-                      {option.icon} {option.label}
-                    </option>
-                  ))}
-                </select>
+                <div className="relative neon-orange-hover">
+                  <select
+                    value={searchBy}
+                    onChange={(e) => setSearchBy(e.target.value)}
+                    className="w-full px-5 py-4 border-2 border-slate-300 rounded-xl focus:ring-4 focus:ring-orange-500/20 focus:border-orange-500 outline-none bg-white text-slate-900 transition-all duration-300 hover:border-orange-400 hover:shadow-lg cursor-pointer appearance-none font-medium"
+                  >
+                    {searchOptions.map((option) => (
+                      <option key={option.value} value={option.value}>
+                        {option.icon} {option.label}
+                      </option>
+                    ))}
+                  </select>
+                  <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-orange-500">
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                    </svg>
+                  </div>
+                </div>
               </div>
 
               {/* Sort By Dropdown */}
-              <div>
-                <label className="block text-sm font-semibold text-slate-700 mb-2">
-                  ⚡ Sort By:
+              <div className="group">
+                <label className="block text-sm font-bold text-slate-700 mb-3 flex items-center gap-2">
+                  <span className="text-lg">⚡</span>
+                  <span>Sort By</span>
                 </label>
-                <select
-                  value={sortBy}
-                  onChange={(e) => setSortBy(e.target.value)}
-                  className="w-full px-4 py-3 border-2 border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none bg-white text-slate-900 transition-all"
-                >
-                  <option value="Latest First">📅 Latest First</option>
-                  <option value="Oldest First">🕐 Oldest First</option>
-                  <option value="Title A-Z">🔤 Title A-Z</option>
-                  <option value="Title Z-A">🔡 Title Z-A</option>
-                </select>
+                <div className="relative neon-orange-hover">
+                  <select
+                    value={sortBy}
+                    onChange={(e) => setSortBy(e.target.value)}
+                    className="w-full px-5 py-4 border-2 border-slate-300 rounded-xl focus:ring-4 focus:ring-orange-500/20 focus:border-orange-500 outline-none bg-white text-slate-900 transition-all duration-300 hover:border-orange-400 hover:shadow-lg cursor-pointer appearance-none font-medium"
+                  >
+                    <option value="Latest First">📅 Latest First</option>
+                    <option value="Oldest First">🕐 Oldest First</option>
+                    <option value="Title A-Z">🔤 Title A-Z</option>
+                    <option value="Title Z-A">🔡 Title Z-A</option>
+                  </select>
+                  <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-orange-500">
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                    </svg>
+                  </div>
+                </div>
               </div>
             </div>
 
             {/* Second Row: Search Input or Date Range */}
             {searchBy === 'Date Range' ? (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-semibold text-slate-700 mb-2">
-                    📅 Start Date:
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="neon-orange-hover">
+                  <label className="block text-sm font-bold text-slate-700 mb-3 flex items-center gap-2">
+                    <span className="text-lg">📅</span>
+                    <span>Start Date</span>
                   </label>
                   <input
                     type="date"
                     value={startDate}
                     onChange={(e) => setStartDate(e.target.value)}
-                    className="w-full px-4 py-3 border-2 border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all"
+                    className="w-full px-5 py-4 border-2 border-slate-300 rounded-xl focus:ring-4 focus:ring-orange-500/20 focus:border-orange-500 outline-none transition-all duration-300 hover:border-orange-400 hover:shadow-lg font-medium"
                   />
                 </div>
-                <div>
-                  <label className="block text-sm font-semibold text-slate-700 mb-2">
-                    📅 End Date:
+                <div className="neon-orange-hover">
+                  <label className="block text-sm font-bold text-slate-700 mb-3 flex items-center gap-2">
+                    <span className="text-lg">📅</span>
+                    <span>End Date</span>
                   </label>
                   <input
                     type="date"
                     value={endDate}
                     onChange={(e) => setEndDate(e.target.value)}
-                    className="w-full px-4 py-3 border-2 border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all"
+                    className="w-full px-5 py-4 border-2 border-slate-300 rounded-xl focus:ring-4 focus:ring-orange-500/20 focus:border-orange-500 outline-none transition-all duration-300 hover:border-orange-400 hover:shadow-lg font-medium"
                   />
                 </div>
               </div>
             ) : searchBy === 'Title & Date' ? (
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div>
-                  <label className="block text-sm font-semibold text-slate-700 mb-2">
-                    📝 Title:
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div className="neon-orange-hover">
+                  <label className="block text-sm font-bold text-slate-700 mb-3 flex items-center gap-2">
+                    <span className="text-lg">📝</span>
+                    <span>Title</span>
                   </label>
                   <input
                     type="text"
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
                     placeholder="Search by title..."
-                    className="w-full px-4 py-3 border-2 border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all"
+                    className="w-full px-5 py-4 border-2 border-slate-300 rounded-xl focus:ring-4 focus:ring-orange-500/20 focus:border-orange-500 outline-none transition-all duration-300 hover:border-orange-400 hover:shadow-lg font-medium"
                   />
                 </div>
-                <div>
-                  <label className="block text-sm font-semibold text-slate-700 mb-2">
-                    📅 Start Date:
+                <div className="neon-orange-hover">
+                  <label className="block text-sm font-bold text-slate-700 mb-3 flex items-center gap-2">
+                    <span className="text-lg">📅</span>
+                    <span>Start Date</span>
                   </label>
                   <input
                     type="date"
                     value={startDate}
                     onChange={(e) => setStartDate(e.target.value)}
-                    className="w-full px-4 py-3 border-2 border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all"
+                    className="w-full px-5 py-4 border-2 border-slate-300 rounded-xl focus:ring-4 focus:ring-orange-500/20 focus:border-orange-500 outline-none transition-all duration-300 hover:border-orange-400 hover:shadow-lg font-medium"
                   />
                 </div>
-                <div>
-                  <label className="block text-sm font-semibold text-slate-700 mb-2">
-                    📅 End Date:
+                <div className="neon-orange-hover">
+                  <label className="block text-sm font-bold text-slate-700 mb-3 flex items-center gap-2">
+                    <span className="text-lg">📅</span>
+                    <span>End Date</span>
                   </label>
                   <input
                     type="date"
                     value={endDate}
                     onChange={(e) => setEndDate(e.target.value)}
-                    className="w-full px-4 py-3 border-2 border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all"
+                    className="w-full px-5 py-4 border-2 border-slate-300 rounded-xl focus:ring-4 focus:ring-orange-500/20 focus:border-orange-500 outline-none transition-all duration-300 hover:border-orange-400 hover:shadow-lg font-medium"
                   />
                 </div>
               </div>
             ) : (
-              <div>
-                <label className="block text-sm font-semibold text-slate-700 mb-2">
-                  {searchOptions.find(opt => opt.value === searchBy)?.icon} {searchBy}:
+              <div className="neon-orange-hover">
+                <label className="block text-sm font-bold text-slate-700 mb-3 flex items-center gap-2">
+                  <span className="text-lg">{searchOptions.find(opt => opt.value === searchBy)?.icon}</span>
+                  <span>{searchBy}</span>
                 </label>
                 <input
                   type="text"
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   placeholder={searchOptions.find(opt => opt.value === searchBy)?.placeholder || `Search by ${searchBy.toLowerCase()}...`}
-                  className="w-full px-4 py-3 border-2 border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all"
+                  className="w-full px-5 py-4 border-2 border-slate-300 rounded-xl focus:ring-4 focus:ring-orange-500/20 focus:border-orange-500 outline-none transition-all duration-300 hover:border-orange-400 hover:shadow-lg font-medium"
                 />
               </div>
             )}
-          </div>
 
-          {/* Action Buttons */}
-          <div className="flex gap-3 justify-end">
-            <button
-              onClick={() => {
-                setSearchQuery('');
-                setSearchBy('Title');
-                setSortBy('Latest First');
-                setStartDate('');
-                setEndDate('');
-              }}
-              className="px-6 py-2.5 text-sm font-semibold text-slate-700 bg-slate-100 hover:bg-slate-200 rounded-lg transition-all shadow-sm hover:shadow"
-            >
-              🔄 Reset
-            </button>
-            <button
-              className="px-6 py-2.5 text-sm font-semibold text-white bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 rounded-lg transition-all shadow-sm hover:shadow"
-            >
-              ✨ Apply Filters
-            </button>
-          </div>
+            {/* Action Buttons */}
+            <div className="flex gap-4 justify-end pt-2">
+              <button
+                onClick={() => {
+                  setSearchQuery('');
+                  setSearchBy('Title');
+                  setSortBy('Latest First');
+                  setStartDate('');
+                  setEndDate('');
+                }}
+                className="group px-8 py-3.5 text-sm font-bold text-slate-700 bg-white border-2 border-slate-300 hover:border-orange-400 rounded-xl transition-all duration-300 hover:shadow-xl hover:shadow-orange-500/20 relative overflow-hidden"
+              >
+                <span className="relative z-10 flex items-center gap-2">
+                  <span className="text-base">🔄</span>
+                  Reset
+                </span>
+                <div className="absolute inset-0 bg-gradient-to-r from-orange-400/0 via-orange-400/10 to-orange-400/0 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+              </button>
+              <button
+                className="group px-8 py-3.5 text-sm font-bold text-white bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 rounded-xl transition-all duration-300 shadow-lg shadow-orange-500/30 hover:shadow-xl hover:shadow-orange-500/50 relative overflow-hidden"
+              >
+                <span className="relative z-10 flex items-center gap-2">
+                  <span className="text-base">✨</span>
+                  Apply Filters
+                </span>
+                <div className="absolute inset-0 bg-white/20 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+              </button>
+            </div>
 
-          {/* Results Count */}
-          <div className="mt-4 pt-4 border-t border-slate-200">
-            <p className="text-sm text-slate-600">
-              <span className="font-semibold text-slate-900">{filteredAnnouncements.length}</span> announcement(s) found
-            </p>
+            {/* Results Count */}
+            <div className="mt-6 pt-4 border-t-2 border-slate-200">
+              <p className="text-sm text-slate-600 text-center">
+                <span className="font-bold text-slate-900 text-lg">{filteredAnnouncements.length}</span> <span className="text-base">announcement(s) found</span>
+              </p>
+            </div>
           </div>
         </motion.div>
 

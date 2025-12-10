@@ -24,3 +24,67 @@ body {
   'GRAD' 0,
   'opsz' 24;
 }
+
+/* Neon Orange Glow Effect on Hover */
+.neon-orange-hover:hover input,
+.neon-orange-hover:hover select {
+  box-shadow: 
+    0 0 20px rgba(249, 115, 22, 0.3),
+    0 0 40px rgba(249, 115, 22, 0.2),
+    0 4px 12px rgba(249, 115, 22, 0.15);
+}
+
+.neon-orange-hover input:focus,
+.neon-orange-hover select:focus {
+  box-shadow: 
+    0 0 30px rgba(249, 115, 22, 0.4),
+    0 0 60px rgba(249, 115, 22, 0.25),
+    0 6px 16px rgba(249, 115, 22, 0.2);
+}
+
+/* Corner Glow Animation */
+@keyframes corner-glow {
+  0%, 100% {
+    box-shadow: 
+      -10px -10px 30px rgba(249, 115, 22, 0.3) inset,
+      10px 10px 30px rgba(249, 115, 22, 0.3) inset;
+  }
+  50% {
+    box-shadow: 
+      -10px -10px 40px rgba(249, 115, 22, 0.5) inset,
+      10px 10px 40px rgba(249, 115, 22, 0.5) inset;
+  }
+}
+
+.neon-orange-hover:hover {
+  position: relative;
+}
+
+.neon-orange-hover:hover::before,
+.neon-orange-hover:hover::after {
+  content: '';
+  position: absolute;
+  width: 20px;
+  height: 20px;
+  border: 2px solid rgba(249, 115, 22, 0.6);
+  pointer-events: none;
+  transition: all 0.3s ease;
+  z-index: 1;
+}
+
+.neon-orange-hover:hover::before {
+  top: -2px;
+  left: -2px;
+  border-right: none;
+  border-bottom: none;
+  box-shadow: -5px -5px 15px rgba(249, 115, 22, 0.4);
+}
+
+.neon-orange-hover:hover::after {
+  bottom: -2px;
+  right: -2px;
+  border-left: none;
+  border-top: none;
+  box-shadow: 5px 5px 15px rgba(249, 115, 22, 0.4);
+}
+
