@@ -7,14 +7,20 @@ const AnnouncementHistory = () => {
   const [announcements, setAnnouncements] = useState([]);
   const [filteredAnnouncements, setFilteredAnnouncements] = useState([]);
   const [searchQuery, setSearchQuery] = useState('');
-  const [searchBy, setSearchBy] = useState('Subject Wise');
+  const [searchBy, setSearchBy] = useState('Title');
   const [sortBy, setSortBy] = useState('Latest First');
   const [selectedAnnouncement, setSelectedAnnouncement] = useState(null);
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
   const navigate = useNavigate();
 
-  const searchOptions = ['Subject Wise', 'Date Wise', 'Uploaded By', 'Subject and Date', 'Description Wise'];
+  const searchOptions = [
+    { value: 'Title', label: 'Title', placeholder: 'Search by announcement title...', icon: '📝' },
+    { value: 'Date Range', label: 'Date Range', placeholder: 'Select date range...', icon: '📅' },
+    { value: 'Author', label: 'Author', placeholder: 'Search by author name...', icon: '👤' },
+    { value: 'Title & Date', label: 'Title & Date', placeholder: 'Search title and date...', icon: '🔍' },
+    { value: 'Content', label: 'Content', placeholder: 'Search in announcement content...', icon: '📄' }
+  ];
 
   useEffect(() => {
     const fetchAnnouncements = async () => {
@@ -32,8 +38,8 @@ const AnnouncementHistory = () => {
   useEffect(() => {
     let filtered = announcements;
 
-    // Apply date range filter (if Date Wise or Subject and Date search is selected and dates are provided)
-    if ((searchBy === 'Date Wise' || searchBy === 'Subject and Date') && (startDate || endDate)) {
+    // Apply date range filter (if Date Range or Title & Date search is selected and dates are provided)
+    if ((searchBy === 'Date Range' || searchBy === 'Title & Date') && (startDate || endDate)) {
       filtered = filtered.filter((ann) => {
         const annDate = new Date(ann.createdAt);
         annDate.setHours(0, 0, 0, 0); // Normalize to start of day
@@ -58,17 +64,17 @@ const AnnouncementHistory = () => {
     }
 
     // Apply search filter
-    if (searchQuery.trim() && searchBy !== 'Date Wise') {
+    if (searchQuery.trim() && searchBy !== 'Date Range') {
       const query = searchQuery.toLowerCase();
       filtered = filtered.filter((ann) => {
         switch (searchBy) {
-          case 'Subject Wise':
+          case 'Title':
             return ann.title.toLowerCase().includes(query);
-          case 'Uploaded By':
+          case 'Author':
             return ann.authorId.toLowerCase().includes(query);
-          case 'Description Wise':
+          case 'Content':
             return ann.originalDescription.toLowerCase().includes(query);
-          case 'Subject and Date':
+          case 'Title & Date':
             return ann.title.toLowerCase().includes(query);
           default:
             return true;
@@ -157,16 +163,16 @@ const AnnouncementHistory = () => {
               {/* Search By Dropdown */}
               <div>
                 <label className="block text-sm font-semibold text-slate-700 mb-2">
-                  Search By:
+                  🔍 Search By:
                 </label>
                 <select
                   value={searchBy}
                   onChange={(e) => setSearchBy(e.target.value)}
-                  className="w-full px-4 py-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none bg-white text-slate-900"
+                  className="w-full px-4 py-3 border-2 border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none bg-white text-slate-900 transition-all"
                 >
                   {searchOptions.map((option) => (
-                    <option key={option} value={option}>
-                      {option}
+                    <option key={option.value} value={option.value}>
+                      {option.icon} {option.label}
                     </option>
                   ))}
                 </select>
@@ -175,95 +181,95 @@ const AnnouncementHistory = () => {
               {/* Sort By Dropdown */}
               <div>
                 <label className="block text-sm font-semibold text-slate-700 mb-2">
-                  Sort By:
+                  ⚡ Sort By:
                 </label>
                 <select
                   value={sortBy}
                   onChange={(e) => setSortBy(e.target.value)}
-                  className="w-full px-4 py-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none bg-white text-slate-900"
+                  className="w-full px-4 py-3 border-2 border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none bg-white text-slate-900 transition-all"
                 >
-                  <option value="Latest First">Latest First</option>
-                  <option value="Oldest First">Oldest First</option>
-                  <option value="Title A-Z">Title A-Z</option>
-                  <option value="Title Z-A">Title Z-A</option>
+                  <option value="Latest First">📅 Latest First</option>
+                  <option value="Oldest First">🕐 Oldest First</option>
+                  <option value="Title A-Z">🔤 Title A-Z</option>
+                  <option value="Title Z-A">🔡 Title Z-A</option>
                 </select>
               </div>
             </div>
 
             {/* Second Row: Search Input or Date Range */}
-            {searchBy === 'Date Wise' ? (
-              <div className="md:col-span-2 grid grid-cols-1 md:grid-cols-2 gap-4">
+            {searchBy === 'Date Range' ? (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-semibold text-slate-700 mb-2">
-                    Start Date:
+                    📅 Start Date:
                   </label>
                   <input
                     type="date"
                     value={startDate}
                     onChange={(e) => setStartDate(e.target.value)}
-                    className="w-full px-4 py-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
+                    className="w-full px-4 py-3 border-2 border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all"
                   />
                 </div>
                 <div>
                   <label className="block text-sm font-semibold text-slate-700 mb-2">
-                    End Date:
+                    📅 End Date:
                   </label>
                   <input
                     type="date"
                     value={endDate}
                     onChange={(e) => setEndDate(e.target.value)}
-                    className="w-full px-4 py-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
+                    className="w-full px-4 py-3 border-2 border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all"
                   />
                 </div>
               </div>
-            ) : searchBy === 'Subject and Date' ? (
-              <div className="md:col-span-2 grid grid-cols-1 md:grid-cols-3 gap-4">
+            ) : searchBy === 'Title & Date' ? (
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div>
                   <label className="block text-sm font-semibold text-slate-700 mb-2">
-                    Subject:
+                    📝 Title:
                   </label>
                   <input
                     type="text"
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
-                    placeholder="Search by subject..."
-                    className="w-full px-4 py-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
+                    placeholder="Search by title..."
+                    className="w-full px-4 py-3 border-2 border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all"
                   />
                 </div>
                 <div>
                   <label className="block text-sm font-semibold text-slate-700 mb-2">
-                    Start Date:
+                    📅 Start Date:
                   </label>
                   <input
                     type="date"
                     value={startDate}
                     onChange={(e) => setStartDate(e.target.value)}
-                    className="w-full px-4 py-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
+                    className="w-full px-4 py-3 border-2 border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all"
                   />
                 </div>
                 <div>
                   <label className="block text-sm font-semibold text-slate-700 mb-2">
-                    End Date:
+                    📅 End Date:
                   </label>
                   <input
                     type="date"
                     value={endDate}
                     onChange={(e) => setEndDate(e.target.value)}
-                    className="w-full px-4 py-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
+                    className="w-full px-4 py-3 border-2 border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all"
                   />
                 </div>
               </div>
             ) : (
               <div>
                 <label className="block text-sm font-semibold text-slate-700 mb-2">
-                  {searchBy}:
+                  {searchOptions.find(opt => opt.value === searchBy)?.icon} {searchBy}:
                 </label>
                 <input
                   type="text"
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  placeholder={`Search by ${searchBy.toLowerCase()}...`}
-                  className="w-full px-4 py-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
+                  placeholder={searchOptions.find(opt => opt.value === searchBy)?.placeholder || `Search by ${searchBy.toLowerCase()}...`}
+                  className="w-full px-4 py-3 border-2 border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all"
                 />
               </div>
             )}
@@ -274,19 +280,19 @@ const AnnouncementHistory = () => {
             <button
               onClick={() => {
                 setSearchQuery('');
-                setSearchBy('Subject Wise');
+                setSearchBy('Title');
                 setSortBy('Latest First');
                 setStartDate('');
                 setEndDate('');
               }}
-              className="px-6 py-2 text-sm font-medium text-slate-700 bg-slate-100 hover:bg-slate-200 rounded-lg transition-colors"
+              className="px-6 py-2.5 text-sm font-semibold text-slate-700 bg-slate-100 hover:bg-slate-200 rounded-lg transition-all shadow-sm hover:shadow"
             >
-              Reset
+              🔄 Reset
             </button>
             <button
-              className="px-6 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors"
+              className="px-6 py-2.5 text-sm font-semibold text-white bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 rounded-lg transition-all shadow-sm hover:shadow"
             >
-              Show
+              ✨ Apply Filters
             </button>
           </div>
 
