@@ -15,6 +15,9 @@ const TeacherDashboard = () => {
   const [audience, setAudience] = useState('Both');
   const [studentsList, setStudentsList] = useState([]);
   const [staffList, setStaffList] = useState([]);
+  const [attachments, setAttachments] = useState([]);
+  const [selectedFiles, setSelectedFiles] = useState([]);
+  const [uploadingFiles, setUploadingFiles] = useState(false);
   const [loading, setLoading] = useState(false);
   const [editingId, setEditingId] = useState(null);
   const [showForm, setShowForm] = useState(false);
@@ -59,6 +62,8 @@ const TeacherDashboard = () => {
     setAudience('Both');
     setStudentsList([]);
     setStaffList([]);
+    setAttachments([]);
+    setSelectedFiles([]);
     setEditingId(null);
     setShowForm(false);
   };
@@ -78,6 +83,7 @@ const TeacherDashboard = () => {
     setAudience(item.audience || 'Both');
     setStudentsList(item.students || []);
     setStaffList(item.staff || []);
+    setAttachments(item.attachments || []);
     setEditingId(item._id);
     setShowForm(true);
   };
@@ -138,6 +144,58 @@ const TeacherDashboard = () => {
     } catch (err) {
       console.error('Failed to parse staff file', err);
       alert('Failed to parse staff file');
+    }
+  };
+
+  const handleFileSelect = (e) => {
+    const files = Array.from(e.target.files || []);
+    setSelectedFiles(files);
+  };
+
+  const handleFileUpload = async (announcementId) => {
+    if (selectedFiles.length === 0) return;
+    
+    setUploadingFiles(true);
+    try {
+      const formData = new FormData();
+      selectedFiles.forEach(file => {
+        formData.append('files', file);
+      });
+
+      const res = await axios.post(
+        `http://localhost:5001/api/announcements/${announcementId}/upload`,
+        formData,
+        {
+          headers: {
+            'Content-Type': 'multipart/form-data'
+          }
+        }
+      );
+
+      setAttachments(res.data.announcement.attachments || []);
+      setSelectedFiles([]);
+      alert('Files uploaded successfully!');
+      fetchAnnouncements();
+    } catch (err) {
+      console.error('Upload error:', err);
+      alert('Failed to upload files: ' + (err.response?.data?.message || err.message));
+    } finally {
+      setUploadingFiles(false);
+    }
+  };
+
+  const handleDeleteAttachment = async (announcementId, attachmentId) => {
+    if (!window.confirm('Delete this file?')) return;
+    
+    try {
+      const res = await axios.delete(
+        `http://localhost:5001/api/announcements/${announcementId}/attachment/${attachmentId}`
+      );
+      setAttachments(res.data.announcement.attachments || []);
+      fetchAnnouncements();
+      alert('File deleted');
+    } catch (err) {
+      alert('Failed to delete file');
     }
   };
 
@@ -352,6 +410,63 @@ const TeacherDashboard = () => {
                     <p className="text-xs text-gray-400 mt-2">Leave empty to auto-generate from description.</p>
                   </div>
 
+                  {/* File Attachments Section */}
+                  {editingId && (
+                    <div className="border-t border-gray-200 pt-6">
+                      <label className="block text-sm font-semibold text-gray-700 mb-3">📎 File Attachments</label>
+                      
+                      {/* Existing Attachments */}
+                      {attachments.length > 0 && (
+                        <div className="mb-4 space-y-2">
+                          {attachments.map((att) => (
+                            <div key={att._id} className="flex items-center justify-between bg-gray-50 px-4 py-2 rounded-lg">
+                              <div className="flex items-center gap-2">
+                                <span className="text-blue-600">📄</span>
+                                <span className="text-sm font-medium">{att.fileName}</span>
+                                <span className="text-xs text-gray-400">
+                                  ({(att.fileSize / 1024).toFixed(1)} KB)
+                                </span>
+                              </div>
+                              <button
+                                type="button"
+                                onClick={() => handleDeleteAttachment(editingId, att._id)}
+                                className="text-red-500 hover:text-red-700 text-sm"
+                              >
+                                🗑️ Delete
+                              </button>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+
+                      {/* Upload New Files */}
+                      <div className="flex gap-2">
+                        <input
+                          type="file"
+                          multiple
+                          onChange={handleFileSelect}
+                          accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt,.jpg,.jpeg,.png,.gif,.zip"
+                          className="flex-1 text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-green-50 file:text-green-700 hover:file:bg-green-100"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => handleFileUpload(editingId)}
+                          disabled={uploadingFiles || selectedFiles.length === 0}
+                          className={`px-4 py-2 rounded-lg font-medium text-sm ${
+                            uploadingFiles || selectedFiles.length === 0
+                              ? 'bg-gray-200 text-gray-400 cursor-not-allowed'
+                              : 'bg-green-600 text-white hover:bg-green-700'
+                          }`}
+                        >
+                          {uploadingFiles ? 'Uploading...' : `Upload ${selectedFiles.length > 0 ? `(${selectedFiles.length})` : ''}`}
+                        </button>
+                      </div>
+                      <p className="text-xs text-gray-400 mt-2">
+                        Accepted: PDF, Word, Excel, PowerPoint, Text, Images, ZIP (Max 10MB per file, up to 5 files)
+                      </p>
+                    </div>
+                  )}
+
                   <div className="flex justify-end pt-4">
                     <button
                       type="submit"
@@ -418,6 +533,22 @@ const TeacherDashboard = () => {
                   </p>
                   <p className="text-sm text-blue-900 leading-relaxed">{item.summary}</p>
                 </div>
+
+                {/* Attachments Preview */}
+                {item.attachments && item.attachments.length > 0 && (
+                  <div className="mt-4 p-3 bg-green-50 rounded-lg border border-green-100">
+                    <p className="text-xs font-bold text-green-800 mb-2 flex items-center gap-1">
+                      📎 Attachments ({item.attachments.length})
+                    </p>
+                    <div className="space-y-1">
+                      {item.attachments.map((att) => (
+                        <div key={att._id} className="text-xs text-green-900 truncate">
+                          • {att.fileName}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
 
                 <div className="flex items-center justify-between pt-4 mt-4 border-t border-gray-50">
                   <span className="text-xs text-gray-400">Posted on</span>

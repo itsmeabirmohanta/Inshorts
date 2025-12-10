@@ -30,6 +30,15 @@ const announcementSchema = new mongoose.Schema({
       email: String
     }
   ],
+  attachments: [
+    {
+      fileName: { type: String, required: true },
+      fileUrl: { type: String, required: true },
+      fileSize: { type: Number }, // in bytes
+      fileType: { type: String }, // MIME type
+      uploadedAt: { type: Date, default: Date.now }
+    }
+  ],
   authorId: { type: String, required: true }, // ID of the teacher who created it
   createdAt: { type: Date, default: Date.now },
 });

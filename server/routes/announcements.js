@@ -2,6 +2,8 @@ const express = require('express');
 const router = express.Router();
 const Announcement = require('../models/Announcement');
 const { generateSummary, generateImage } = require('../services/ai');
+const upload = require('../middleware/upload');
+const path = require('path');
 
 // Get all announcements (optional filter by authorId)
 router.get('/', async (req, res) => {
@@ -125,6 +127,64 @@ router.post('/:id/regenerate-image', async (req, res) => {
     res.json(updatedAnnouncement);
   } catch (err) {
     console.error('Error regenerating image:', err);
+    res.status(500).json({ message: err.message });
+  }
+});
+
+// Upload file attachments
+router.post('/:id/upload', upload.array('files', 5), async (req, res) => {
+  try {
+    const announcement = await Announcement.findById(req.params.id);
+    if (!announcement) {
+      return res.status(404).json({ message: 'Announcement not found' });
+    }
+
+    // Add uploaded files to attachments array
+    const newAttachments = req.files.map(file => ({
+      fileName: file.originalname,
+      fileUrl: `/uploads/${file.filename}`,
+      fileSize: file.size,
+      fileType: file.mimetype,
+      uploadedAt: new Date()
+    }));
+
+    announcement.attachments = announcement.attachments || [];
+    announcement.attachments.push(...newAttachments);
+    
+    await announcement.save();
+    res.json({ 
+      message: 'Files uploaded successfully', 
+      attachments: newAttachments,
+      announcement 
+    });
+  } catch (err) {
+    console.error('Upload error:', err);
+    res.status(500).json({ message: err.message });
+  }
+});
+
+// Delete attachment
+router.delete('/:id/attachment/:attachmentId', async (req, res) => {
+  try {
+    const announcement = await Announcement.findById(req.params.id);
+    if (!announcement) {
+      return res.status(404).json({ message: 'Announcement not found' });
+    }
+
+    const attachmentIndex = announcement.attachments.findIndex(
+      att => att._id.toString() === req.params.attachmentId
+    );
+
+    if (attachmentIndex === -1) {
+      return res.status(404).json({ message: 'Attachment not found' });
+    }
+
+    // Remove from array
+    announcement.attachments.splice(attachmentIndex, 1);
+    await announcement.save();
+
+    res.json({ message: 'Attachment deleted', announcement });
+  } catch (err) {
     res.status(500).json({ message: err.message });
   }
 });

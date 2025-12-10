@@ -18,6 +18,9 @@ app.use((req, res, next) => {
 });
 app.use(express.json());
 
+// Serve uploaded files statically
+app.use('/uploads', express.static('uploads'));
+
 // Database Connection (improved diagnostics)
 const MONGO_URI = process.env.MONGO_URI || 'mongodb://localhost:27017/inshorts-uni';
 
