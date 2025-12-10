@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
+import API_ENDPOINTS from '../config/api';
 
 const AnnouncementHistory = () => {
   const [announcements, setAnnouncements] = useState([]);
@@ -18,7 +19,7 @@ const AnnouncementHistory = () => {
   useEffect(() => {
     const fetchAnnouncements = async () => {
       try {
-        const res = await axios.get('http://localhost:5001/api/announcements');
+        const res = await axios.get(API_ENDPOINTS.ANNOUNCEMENTS.BASE);
         setAnnouncements(res.data);
         setFilteredAnnouncements(res.data);
       } catch (err) {
@@ -403,7 +404,7 @@ const AnnouncementHistory = () => {
                         return (
                           <a
                             key={att._id}
-                            href={`http://localhost:5001${att.fileUrl}`}
+                            href={`${API_ENDPOINTS.BASE_URL}${att.fileUrl}`}
                             download={att.fileName}
                             className="flex items-center justify-between bg-slate-50 p-3 rounded-lg hover:bg-slate-100 transition-colors group border border-slate-200"
                           >
