@@ -471,6 +471,14 @@ const TeacherDashboard = () => {
             <h1 className="text-2xl font-bold text-gray-900 tracking-tight">Teacher Portal</h1>
             <div className="flex items-center gap-4">
               <button 
+                onClick={() => navigate('/history')}
+                className="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-lg font-medium transition-colors flex items-center gap-2"
+                title="View Announcement History"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
+                History
+              </button>
+              <button 
                 onClick={() => { resetForm(); setShowForm(!showForm); }}
                 className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-medium transition-colors"
               >

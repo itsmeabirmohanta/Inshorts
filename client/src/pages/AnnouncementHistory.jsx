@@ -78,6 +78,15 @@ const AnnouncementHistory = () => {
     navigate('/');
   };
 
+  const handleBack = () => {
+    const user = JSON.parse(localStorage.getItem('user'));
+    if (user?.role === 'teacher') {
+      navigate('/dashboard');
+    } else {
+      navigate('/feed');
+    }
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100">
       {/* Header */}
@@ -86,7 +95,7 @@ const AnnouncementHistory = () => {
           <div className="flex items-center justify-between h-16">
             <div className="flex items-center gap-3">
               <button
-                onClick={() => navigate('/feed')}
+                onClick={handleBack}
                 className="text-slate-600 hover:text-slate-900 transition-colors"
               >
                 <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
