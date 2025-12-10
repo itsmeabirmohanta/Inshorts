@@ -242,9 +242,10 @@ const TeacherDashboard = () => {
               </button>
               <button 
                 onClick={() => navigate('/history')}
-                className="bg-gray-600 hover:bg-gray-700 text-white px-4 py-2 rounded-lg font-medium transition-colors"
+                className="text-gray-600 hover:text-gray-900 transition-colors"
+                title="View Announcement History"
               >
-                History
+                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2z"></path><polyline points="17 8 12 13 7 8"></polyline></svg>
               </button>
               <button onClick={handleLogout} className="text-gray-500 hover:text-red-600 font-medium transition-colors">Logout</button>
             </div>
