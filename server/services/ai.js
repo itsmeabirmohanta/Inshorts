@@ -6,9 +6,11 @@ const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
 const generateSummary = async (text) => {
   try {
     if (!process.env.GEMINI_API_KEY) {
-      throw new Error("GEMINI_API_KEY is missing in .env file");
+      console.warn("GEMINI_API_KEY is missing in .env file - using fallback summary");
+      return generateFallbackSummary(text);
     }
-    const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
+    
+    const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash-exp" });
     const prompt = `Summarize the following university announcement into exactly 60 words, keeping the key information intact. Make it engaging for students. \n\nAnnouncement: ${text}`;
     
     const result = await model.generateContent(prompt);
@@ -17,8 +19,28 @@ const generateSummary = async (text) => {
   } catch (error) {
     console.error("Gemini API Error Details:", JSON.stringify(error, null, 2));
     console.error("Original Error:", error);
-    return "Summary generation failed. Please check server logs for details.";
+    
+    // Check for specific error types
+    if (error.message && error.message.includes('API key expired')) {
+      console.error("⚠️  GEMINI API KEY HAS EXPIRED - Please update GEMINI_API_KEY in .env file");
+      console.error("   Get a new key from: https://aistudio.google.com/app/apikey");
+    }
+    
+    // Return a fallback summary instead of error message
+    return generateFallbackSummary(text);
   }
+};
+
+// Fallback summary generation when AI is unavailable
+const generateFallbackSummary = (text) => {
+  // Simple text truncation with word boundary
+  const words = text.trim().split(/\s+/);
+  if (words.length <= 60) {
+    return text.trim();
+  }
+  // Take first 60 words and add ellipsis
+  const summary = words.slice(0, 60).join(' ');
+  return summary + '...';
 };
 
 const generateImage = async (title, tags = []) => {
