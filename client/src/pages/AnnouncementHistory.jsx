@@ -32,8 +32,8 @@ const AnnouncementHistory = () => {
   useEffect(() => {
     let filtered = announcements;
 
-    // Apply date range filter (if Date Wise search is selected and dates are provided)
-    if (searchBy === 'Date Wise' && (startDate || endDate)) {
+    // Apply date range filter (if Date Wise or Subject and Date search is selected and dates are provided)
+    if ((searchBy === 'Date Wise' || searchBy === 'Subject and Date') && (startDate || endDate)) {
       filtered = filtered.filter((ann) => {
         const annDate = new Date(ann.createdAt);
         annDate.setHours(0, 0, 0, 0); // Normalize to start of day
@@ -69,10 +69,7 @@ const AnnouncementHistory = () => {
           case 'Description Wise':
             return ann.originalDescription.toLowerCase().includes(query);
           case 'Subject and Date':
-            return (
-              ann.title.toLowerCase().includes(query) ||
-              new Date(ann.createdAt).toLocaleDateString().includes(query)
-            );
+            return ann.title.toLowerCase().includes(query);
           default:
             return true;
         }
@@ -154,28 +151,85 @@ const AnnouncementHistory = () => {
           animate={{ opacity: 1, y: 0 }}
           className="bg-white rounded-xl shadow-md p-6 mb-8 border border-slate-200"
         >
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
-            {/* Search By Dropdown */}
-            <div>
-              <label className="block text-sm font-semibold text-slate-700 mb-2">
-                Search By:
-              </label>
-              <select
-                value={searchBy}
-                onChange={(e) => setSearchBy(e.target.value)}
-                className="w-full px-4 py-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none bg-white text-slate-900"
-              >
-                {searchOptions.map((option) => (
-                  <option key={option} value={option}>
-                    {option}
-                  </option>
-                ))}
-              </select>
+          <div className="space-y-4 mb-4">
+            {/* First Row: Search By and Sort By */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {/* Search By Dropdown */}
+              <div>
+                <label className="block text-sm font-semibold text-slate-700 mb-2">
+                  Search By:
+                </label>
+                <select
+                  value={searchBy}
+                  onChange={(e) => setSearchBy(e.target.value)}
+                  className="w-full px-4 py-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none bg-white text-slate-900"
+                >
+                  {searchOptions.map((option) => (
+                    <option key={option} value={option}>
+                      {option}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Sort By Dropdown */}
+              <div>
+                <label className="block text-sm font-semibold text-slate-700 mb-2">
+                  Sort By:
+                </label>
+                <select
+                  value={sortBy}
+                  onChange={(e) => setSortBy(e.target.value)}
+                  className="w-full px-4 py-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none bg-white text-slate-900"
+                >
+                  <option value="Latest First">Latest First</option>
+                  <option value="Oldest First">Oldest First</option>
+                  <option value="Title A-Z">Title A-Z</option>
+                  <option value="Title Z-A">Title Z-A</option>
+                </select>
+              </div>
             </div>
 
-            {/* Search Input or Date Range */}
+            {/* Second Row: Search Input or Date Range */}
             {searchBy === 'Date Wise' ? (
               <div className="md:col-span-2 grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-semibold text-slate-700 mb-2">
+                    Start Date:
+                  </label>
+                  <input
+                    type="date"
+                    value={startDate}
+                    onChange={(e) => setStartDate(e.target.value)}
+                    className="w-full px-4 py-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-semibold text-slate-700 mb-2">
+                    End Date:
+                  </label>
+                  <input
+                    type="date"
+                    value={endDate}
+                    onChange={(e) => setEndDate(e.target.value)}
+                    className="w-full px-4 py-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
+                  />
+                </div>
+              </div>
+            ) : searchBy === 'Subject and Date' ? (
+              <div className="md:col-span-2 grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div>
+                  <label className="block text-sm font-semibold text-slate-700 mb-2">
+                    Subject:
+                  </label>
+                  <input
+                    type="text"
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    placeholder="Search by subject..."
+                    className="w-full px-4 py-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
+                  />
+                </div>
                 <div>
                   <label className="block text-sm font-semibold text-slate-700 mb-2">
                     Start Date:
@@ -213,23 +267,6 @@ const AnnouncementHistory = () => {
                 />
               </div>
             )}
-
-            {/* Sort By Dropdown */}
-            <div>
-              <label className="block text-sm font-semibold text-slate-700 mb-2">
-                Sort By:
-              </label>
-              <select
-                value={sortBy}
-                onChange={(e) => setSortBy(e.target.value)}
-                className="w-full px-4 py-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none bg-white text-slate-900"
-              >
-                <option value="Latest First">Latest First</option>
-                <option value="Oldest First">Oldest First</option>
-                <option value="Title A-Z">Title A-Z</option>
-                <option value="Title Z-A">Title Z-A</option>
-              </select>
-            </div>
           </div>
 
           {/* Action Buttons */}
