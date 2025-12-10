@@ -8,7 +8,7 @@ const AnnouncementHistory = () => {
   const [filteredAnnouncements, setFilteredAnnouncements] = useState([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [searchBy, setSearchBy] = useState('Subject Wise');
-  const [sortBy, setSortBy] = useState('Date Wise');
+  const [sortBy, setSortBy] = useState('Latest First');
   const [selectedAnnouncement, setSelectedAnnouncement] = useState(null);
   const navigate = useNavigate();
 
@@ -57,14 +57,14 @@ const AnnouncementHistory = () => {
     // Apply sorting
     const sorted = [...filtered].sort((a, b) => {
       switch (sortBy) {
-        case 'Date Wise':
+        case 'Latest First':
           return new Date(b.createdAt) - new Date(a.createdAt);
         case 'Oldest First':
           return new Date(a.createdAt) - new Date(b.createdAt);
         case 'Title A-Z':
-          return a.title.localeCompare(b.title);
+          return a.title.localeCompare(b.title, undefined, { sensitivity: 'base' });
         case 'Title Z-A':
-          return b.title.localeCompare(a.title);
+          return b.title.localeCompare(a.title, undefined, { sensitivity: 'base' });
         default:
           return 0;
       }
@@ -165,7 +165,7 @@ const AnnouncementHistory = () => {
                 onChange={(e) => setSortBy(e.target.value)}
                 className="w-full px-4 py-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none bg-white text-slate-900"
               >
-                <option value="Date Wise">Latest First</option>
+                <option value="Latest First">Latest First</option>
                 <option value="Oldest First">Oldest First</option>
                 <option value="Title A-Z">Title A-Z</option>
                 <option value="Title Z-A">Title Z-A</option>
