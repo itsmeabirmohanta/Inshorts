@@ -36,7 +36,7 @@ function App() {
         <Route 
           path="/history" 
           element={
-            <PrivateRoute role="teacher">
+            <PrivateRoute>
               <AnnouncementHistory />
             </PrivateRoute>
           } 
