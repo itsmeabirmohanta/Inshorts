@@ -10,6 +10,8 @@ const AnnouncementHistory = () => {
   const [searchBy, setSearchBy] = useState('Subject Wise');
   const [sortBy, setSortBy] = useState('Latest First');
   const [selectedAnnouncement, setSelectedAnnouncement] = useState(null);
+  const [startDate, setStartDate] = useState('');
+  const [endDate, setEndDate] = useState('');
   const navigate = useNavigate();
 
   const searchOptions = ['Subject Wise', 'Date Wise', 'Uploaded By', 'Subject and Date', 'Description Wise'];
@@ -30,15 +32,38 @@ const AnnouncementHistory = () => {
   useEffect(() => {
     let filtered = announcements;
 
+    // Apply date range filter (if Date Wise search is selected and dates are provided)
+    if (searchBy === 'Date Wise' && (startDate || endDate)) {
+      filtered = filtered.filter((ann) => {
+        const annDate = new Date(ann.createdAt);
+        annDate.setHours(0, 0, 0, 0); // Normalize to start of day
+        
+        if (startDate && endDate) {
+          const start = new Date(startDate);
+          const end = new Date(endDate);
+          start.setHours(0, 0, 0, 0);
+          end.setHours(23, 59, 59, 999); // End of day
+          return annDate >= start && annDate <= end;
+        } else if (startDate) {
+          const start = new Date(startDate);
+          start.setHours(0, 0, 0, 0);
+          return annDate >= start;
+        } else if (endDate) {
+          const end = new Date(endDate);
+          end.setHours(23, 59, 59, 999);
+          return annDate <= end;
+        }
+        return true;
+      });
+    }
+
     // Apply search filter
-    if (searchQuery.trim()) {
+    if (searchQuery.trim() && searchBy !== 'Date Wise') {
       const query = searchQuery.toLowerCase();
       filtered = filtered.filter((ann) => {
         switch (searchBy) {
           case 'Subject Wise':
             return ann.title.toLowerCase().includes(query);
-          case 'Date Wise':
-            return new Date(ann.createdAt).toLocaleDateString().includes(query);
           case 'Uploaded By':
             return ann.authorId.toLowerCase().includes(query);
           case 'Description Wise':
@@ -78,7 +103,7 @@ const AnnouncementHistory = () => {
     console.log('First 3 titles after sorting:', sorted.slice(0, 3).map(a => a.title));
 
     setFilteredAnnouncements(sorted);
-  }, [searchQuery, searchBy, sortBy, announcements]);
+  }, [searchQuery, searchBy, sortBy, announcements, startDate, endDate]);
 
   const handleLogout = () => {
     localStorage.removeItem('user');
@@ -148,19 +173,46 @@ const AnnouncementHistory = () => {
               </select>
             </div>
 
-            {/* Search Input */}
-            <div>
-              <label className="block text-sm font-semibold text-slate-700 mb-2">
-                {searchBy}:
-              </label>
-              <input
-                type="text"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder={`Search by ${searchBy.toLowerCase()}...`}
-                className="w-full px-4 py-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
-              />
-            </div>
+            {/* Search Input or Date Range */}
+            {searchBy === 'Date Wise' ? (
+              <div className="md:col-span-2 grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-semibold text-slate-700 mb-2">
+                    Start Date:
+                  </label>
+                  <input
+                    type="date"
+                    value={startDate}
+                    onChange={(e) => setStartDate(e.target.value)}
+                    className="w-full px-4 py-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-semibold text-slate-700 mb-2">
+                    End Date:
+                  </label>
+                  <input
+                    type="date"
+                    value={endDate}
+                    onChange={(e) => setEndDate(e.target.value)}
+                    className="w-full px-4 py-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
+                  />
+                </div>
+              </div>
+            ) : (
+              <div>
+                <label className="block text-sm font-semibold text-slate-700 mb-2">
+                  {searchBy}:
+                </label>
+                <input
+                  type="text"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  placeholder={`Search by ${searchBy.toLowerCase()}...`}
+                  className="w-full px-4 py-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
+                />
+              </div>
+            )}
 
             {/* Sort By Dropdown */}
             <div>
@@ -186,7 +238,9 @@ const AnnouncementHistory = () => {
               onClick={() => {
                 setSearchQuery('');
                 setSearchBy('Subject Wise');
-                setSortBy('Date Wise');
+                setSortBy('Latest First');
+                setStartDate('');
+                setEndDate('');
               }}
               className="px-6 py-2 text-sm font-medium text-slate-700 bg-slate-100 hover:bg-slate-200 rounded-lg transition-colors"
             >
