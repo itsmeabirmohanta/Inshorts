@@ -31,11 +31,7 @@ const TeacherDashboard = () => {
 
   const fetchAnnouncements = async () => {
     try {
-      console.log('Fetching announcements for user:', user);
-      console.log('User ID:', user.id);
       const res = await axios.get(`http://localhost:5001/api/announcements?authorId=${user.id}`);
-      console.log('Fetched announcements:', res.data);
-      console.log('Number of announcements:', res.data.length);
       // Force a new array reference to trigger re-render
       setAnnouncements([...res.data]);
     } catch (err) {
@@ -439,14 +435,10 @@ const TeacherDashboard = () => {
         await axios.put(`http://localhost:5001/api/announcements/${editingId}`, payload);
         alert('Announcement Updated!');
       } else {
-        console.log('Creating announcement with authorId:', user.id);
-        console.log('User object:', user);
         const res = await axios.post('http://localhost:5001/api/announcements', { 
           ...payload,
           authorId: user.id
         });
-        console.log('Created announcement:', res.data);
-        console.log('Announcement authorId:', res.data.authorId);
         announcementId = res.data._id;
         
         // Upload files if any were selected during creation
