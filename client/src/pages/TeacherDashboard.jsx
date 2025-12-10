@@ -240,6 +240,12 @@ const TeacherDashboard = () => {
               >
                 {showForm ? 'Cancel' : '+ New Announcement'}
               </button>
+              <button 
+                onClick={() => navigate('/history')}
+                className="bg-gray-600 hover:bg-gray-700 text-white px-4 py-2 rounded-lg font-medium transition-colors"
+              >
+                History
+              </button>
               <button onClick={handleLogout} className="text-gray-500 hover:text-red-600 font-medium transition-colors">Logout</button>
             </div>
           </div>
