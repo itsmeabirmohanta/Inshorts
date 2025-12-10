@@ -36,7 +36,8 @@ const TeacherDashboard = () => {
       const res = await axios.get(`http://localhost:5001/api/announcements?authorId=${user.id}`);
       console.log('Fetched announcements:', res.data);
       console.log('Number of announcements:', res.data.length);
-      setAnnouncements(res.data);
+      // Force a new array reference to trigger re-render
+      setAnnouncements([...res.data]);
     } catch (err) {
       console.error('Failed to fetch announcements:', err.message);
     }
@@ -457,9 +458,14 @@ const TeacherDashboard = () => {
       }
       
       resetForm();
-      fetchAnnouncements();
+      
+      // Wait a moment then fetch to ensure database has saved
+      setTimeout(() => {
+        fetchAnnouncements();
+      }, 500);
     } catch (err) {
-      alert('Failed to save announcement');
+      console.error('Error saving announcement:', err);
+      alert('Failed to save announcement: ' + (err.response?.data?.message || err.message));
     } finally {
       setLoading(false);
     }
