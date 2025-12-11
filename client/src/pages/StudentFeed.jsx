@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
+import API_ENDPOINTS from '../config/api';
 
 const StudentFeed = () => {
   const [announcements, setAnnouncements] = useState([]);
@@ -19,7 +20,7 @@ const StudentFeed = () => {
     // Replace with your actual API endpoint
     const fetchAnnouncements = async () => {
       try {
-        const res = await axios.get('http://localhost:5001/api/announcements');
+        const res = await axios.get(API_ENDPOINTS.ANNOUNCEMENTS.BASE);
         setAnnouncements(res.data);
         // Initialize filtered list with all data
         setFilteredAnnouncements(res.data); 
@@ -273,6 +274,48 @@ const StudentFeed = () => {
                   <div className="prose prose-invert prose-p:text-zinc-300 prose-headings:text-white max-w-none">
                     <p className="text-white whitespace-pre-wrap">{selectedAnnouncement.originalDescription}</p>
                   </div>
+
+                  {/* Attachments Section */}
+                  {selectedAnnouncement.attachments && selectedAnnouncement.attachments.length > 0 && (
+                    <div className="mt-8 pt-6 border-t border-zinc-700">
+                      <h3 className="text-white font-semibold mb-4 flex items-center gap-2">
+                        📎 Attachments ({selectedAnnouncement.attachments.length})
+                      </h3>
+                      <div className="space-y-2">
+                        {selectedAnnouncement.attachments.map((att) => {
+                          const ext = att.fileName.split('.').pop().toLowerCase();
+                          const iconMap = {
+                            pdf: '📕', doc: '📘', docx: '📘',
+                            xls: '📗', xlsx: '📗', ppt: '📙', pptx: '📙',
+                            txt: '📄', jpg: '🖼️', jpeg: '🖼️', png: '🖼️', gif: '🖼️',
+                            zip: '📦', rar: '📦'
+                          };
+                          const icon = iconMap[ext] || '📎';
+                          const fileSize = att.fileSize ? `${(att.fileSize / 1024).toFixed(1)} KB` : 'Unknown size';
+
+                          return (
+                            <a
+                              key={att._id}
+                              href={`${API_ENDPOINTS.BASE_URL}${att.fileUrl}`}
+                              download={att.fileName}
+                              className="flex items-center justify-between bg-zinc-800 hover:bg-zinc-700 p-4 rounded-lg transition-colors border border-zinc-700 hover:border-zinc-600 group"
+                            >
+                              <div className="flex items-center gap-3 flex-1 min-w-0">
+                                <span className="text-2xl">{icon}</span>
+                                <div className="min-w-0">
+                                  <p className="font-medium text-white truncate text-sm">{att.fileName}</p>
+                                  <p className="text-xs text-zinc-400">{fileSize}</p>
+                                </div>
+                              </div>
+                              <svg className="w-5 h-5 text-blue-400 group-hover:text-blue-300 flex-shrink-0 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                              </svg>
+                            </a>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  )}
                 </div>
               </motion.div>
             </motion.div>
