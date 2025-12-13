@@ -3,11 +3,12 @@ import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-d
 import Login from './pages/Login';
 import TeacherDashboard from './pages/TeacherDashboard';
 import StudentFeed from './pages/StudentFeed';
+import AnnouncementHistory from './pages/AnnouncementHistory';
 
 const PrivateRoute = ({ children, role }) => {
-  const user = JSON.parse(localStorage.getItem('user'));
-  if (!user) return <Navigate to="/" />;
-  if (role && user.role !== role) return <Navigate to="/" />;
+  const userData = JSON.parse(localStorage.getItem('user'));
+  if (!userData) return <Navigate to="/" />;
+  if (role && userData.user.role !== role) return <Navigate to="/" />;
   return children;
 };
 
@@ -29,6 +30,14 @@ function App() {
           element={
             <PrivateRoute role="student">
               <StudentFeed />
+            </PrivateRoute>
+          } 
+        />
+        <Route 
+          path="/history" 
+          element={
+            <PrivateRoute>
+              <AnnouncementHistory />
             </PrivateRoute>
           } 
         />
