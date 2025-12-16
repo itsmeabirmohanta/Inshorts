@@ -2,10 +2,11 @@
   "name": "inshorts-clone",
   "version": "1.0.0",
   "scripts": {
+    "dev": "npm run start",
     "start": "concurrently \"npm run server\" \"npm run client\"",
     "server": "cd server && npm start",
     "client": "cd client && npm run dev",
-    "install:all": "npm install && cd server && npm install && cd client && npm install"
+  "install:all": "npm install && npm --prefix server install && npm --prefix client install"
   },
   "devDependencies": {
     "concurrently": "^8.0.0"

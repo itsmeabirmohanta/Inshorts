@@ -1,7 +1,10 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion as Motion, AnimatePresence } from 'framer-motion';
+import Papa from 'papaparse';
+import readXlsxFile from 'read-excel-file';
+import API_ENDPOINTS from '../config/api';
 
 const TeacherDashboard = () => {
   const [announcements, setAnnouncements] = useState([]);
@@ -10,6 +13,9 @@ const TeacherDashboard = () => {
   const [summary, setSummary] = useState('');
   const [tags, setTags] = useState(['', '', '']);
   const [category, setCategory] = useState('All');
+  const [audience, setAudience] = useState('Both');
+  const [studentsList, setStudentsList] = useState([]);
+  const [staffList, setStaffList] = useState([]);
   const [loading, setLoading] = useState(false);
   const [editingId, setEditingId] = useState(null);
   const [showForm, setShowForm] = useState(false);
@@ -17,22 +23,24 @@ const TeacherDashboard = () => {
   const [selectedAnnouncement, setSelectedAnnouncement] = useState(null);
   const [customImageUrl, setCustomImageUrl] = useState('');
   const [imageLoading, setImageLoading] = useState(false);
+  const [attachments, setAttachments] = useState([]);
   const navigate = useNavigate();
 
-  const user = JSON.parse(localStorage.getItem('user'));
+  const userData = JSON.parse(localStorage.getItem('user'));
+  const user = userData?.user;
 
-  const fetchAnnouncements = async () => {
+  const fetchAnnouncements = useCallback(async () => {
     try {
-      const res = await axios.get(`http://localhost:5001/api/announcements?authorId=${user.id}`);
+      const res = await axios.get(`${API_ENDPOINTS.ANNOUNCEMENTS.BASE}?authorId=${user?.id}`);
       setAnnouncements(res.data);
     } catch (err) {
-      console.error(err);
+      // Silently handle - UI shows empty state
     }
-  };
+  }, [user?.id]);
 
   useEffect(() => {
     fetchAnnouncements();
-  }, []);
+  }, [fetchAnnouncements]);
 
   const handleLogout = () => {
     localStorage.removeItem('user');
@@ -51,12 +59,15 @@ const TeacherDashboard = () => {
     setSummary('');
     setTags(['', '', '']);
     setCategory('All');
+    setAudience('Both');
+    setStudentsList([]);
+    setStaffList([]);
+    setAttachments([]);
     setEditingId(null);
     setShowForm(false);
   };
 
   const handleEdit = (item) => {
-    setTitle(item.title);
     setTitle(item.title);
     setDescription(item.originalDescription);
     setSummary(item.summary);
@@ -68,16 +79,139 @@ const TeacherDashboard = () => {
       currentTags[2] || ''
     ]);
     setCategory(item.category || 'All');
+    setAudience(item.audience || 'Both');
+    setStudentsList(item.students || []);
+    setStaffList(item.staff || []);
+    // Load existing attachments
+    if (item.attachments && item.attachments.length > 0) {
+      const existingAttachments = item.attachments.map(att => ({
+        id: att._id || Date.now() + Math.random(),
+        name: att.fileName,
+        size: att.fileSize,
+        fileUrl: att.fileUrl,
+        isExisting: true
+      }));
+      setAttachments(existingAttachments);
+    } else {
+      setAttachments([]);
+    }
     setEditingId(item._id);
     setShowForm(true);
+  };
+
+  const parseCsvOrExcel = (file) => {
+    return new Promise((resolve, reject) => {
+      const name = file.name.toLowerCase();
+      if (name.endsWith('.csv') || file.type === 'text/csv') {
+        Papa.parse(file, {
+          header: true,
+          skipEmptyLines: true,
+          complete: (results) => resolve(results.data),
+          error: (err) => reject(err)
+        });
+      } else {
+        readXlsxFile(file)
+          .then((rows) => {
+            if (rows.length === 0) {
+              resolve([]);
+              return;
+            }
+            const headers = rows[0];
+            const data = rows.slice(1).map(row => {
+              const obj = {};
+              headers.forEach((header, i) => {
+                obj[header] = row[i] || '';
+              });
+              return obj;
+            });
+            resolve(data);
+          })
+          .catch((err) => reject(err));
+      }
+    });
+  };
+
+  const handleStudentsFile = async (e) => {
+    const file = e.target.files && e.target.files[0];
+    if (!file) return;
+    try {
+      const rows = await parseCsvOrExcel(file);
+      const mapped = rows.map(r => ({
+        name: r.name || r.Name || r.fullname || r.FullName || r.student_name || '',
+        regId: r.regId || r.RegId || r.reg_id || r.Reg_ID || r.RegNo || '',
+        email: r.email || r.Email || ''
+      }));
+      setStudentsList(mapped.filter(x => x.name || x.regId || x.email));
+    } catch (err) {
+      console.error('Failed to parse students file', err);
+      alert('Failed to parse students file');
+    }
+  };
+
+  const handleStaffFile = async (e) => {
+    const file = e.target.files && e.target.files[0];
+    if (!file) return;
+    try {
+      const rows = await parseCsvOrExcel(file);
+      const mapped = rows.map(r => ({
+        name: r.name || r.Name || r.fullname || r.FullName || r.staff_name || '',
+        staffId: r.staffId || r.StaffId || r.staff_id || r.Staff_ID || r.staffNo || '',
+        email: r.email || r.Email || ''
+      }));
+      setStaffList(mapped.filter(x => x.name || x.staffId || x.email));
+    } catch (err) {
+      console.error('Failed to parse staff file', err);
+      alert('Failed to parse staff file');
+    }
+  };
+
+  const handleAttachmentAdd = (e) => {
+    const files = e.target.files;
+    if (!files) return;
+    
+    const newAttachments = Array.from(files).map(file => ({
+      id: Date.now() + Math.random(),
+      file,
+      name: file.name,
+      size: file.size
+    }));
+    
+    setAttachments([...attachments, ...newAttachments]);
+    e.target.value = ''; // Reset input
+  };
+
+  const handleAttachmentRemove = (id) => {
+    setAttachments(attachments.filter(att => att.id !== id));
+  };
+
+  const formatFileSize = (bytes) => {
+    if (bytes === 0) return '0 Bytes';
+    const k = 1024;
+    const sizes = ['Bytes', 'KB', 'MB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return Math.round((bytes / Math.pow(k, i)) * 100) / 100 + ' ' + sizes[i];
+  };
+
+  const getFileIcon = (fileName) => {
+    const ext = fileName.split('.').pop().toLowerCase();
+    const iconMap = {
+      pdf: '📕', doc: '📘', docx: '📘',
+      xls: '📗', xlsx: '📗', ppt: '📙', pptx: '📙',
+      txt: '📄', jpg: '🖼️', jpeg: '🖼️', png: '🖼️', gif: '🖼️',
+      zip: '📦', rar: '📦'
+    };
+    return iconMap[ext] || '📎';
   };
 
   const handleDelete = async (id) => {
     if (!window.confirm('Are you sure you want to delete this announcement?')) return;
     try {
-      await axios.delete(`http://localhost:5001/api/announcements/${id}`);
+      await axios.delete(`${API_ENDPOINTS.ANNOUNCEMENTS.BASE}/${id}`, {
+        data: { authorId: user?.id }
+      });
       fetchAnnouncements();
-    } catch (err) {
+    } catch (error) {
+      console.error('Delete failed:', error);
       alert('Failed to delete');
     }
   };
@@ -92,12 +226,10 @@ const TeacherDashboard = () => {
     if (!selectedAnnouncement) return;
     setImageLoading(true);
     try {
-      console.log('Regenerating image for:', selectedAnnouncement._id);
-      console.log('Custom URL:', customImageUrl.trim());
-      const res = await axios.post(`http://localhost:5001/api/announcements/${selectedAnnouncement._id}/regenerate-image`, {
-        customImageUrl: customImageUrl.trim()
+      const res = await axios.post(`${API_ENDPOINTS.ANNOUNCEMENTS.BASE}/${selectedAnnouncement._id}/regenerate-image`, {
+        customImageUrl: customImageUrl.trim(),
+        authorId: user?.id
       });
-      console.log('Response:', res.data);
       // Update announcements list
       setAnnouncements(announcements.map(a => a._id === res.data._id ? res.data : a));
       // Update selected announcement to show new image in modal
@@ -108,7 +240,6 @@ const TeacherDashboard = () => {
         setShowImageModal(false);
       }, 1000);
     } catch (err) {
-      console.error('Error details:', err.response?.data || err.message);
       const errorMsg = err.response?.data?.message || err.message || 'Unknown error';
       alert(`Failed to update image: ${errorMsg}`);
     } finally {
@@ -122,30 +253,41 @@ const TeacherDashboard = () => {
     const cleanTags = tags.filter(t => t.trim() !== '');
     
     try {
+      const formData = new FormData();
+      formData.append('title', title);
+      formData.append('description', description);
+      formData.append('summary', summary);
+      formData.append('tags', JSON.stringify(cleanTags));
+      formData.append('category', category);
+      formData.append('audience', audience);
+      formData.append('students', JSON.stringify(studentsList));
+      formData.append('staff', JSON.stringify(staffList));
+      
+      // Add only new files (not existing ones)
+      const newAttachments = attachments.filter(att => !att.isExisting);
+      newAttachments.forEach(att => {
+        if (att.file) {
+          formData.append('files', att.file);
+        }
+      });
+      
       if (editingId) {
-        await axios.put(`http://localhost:5001/api/announcements/${editingId}`, { 
-          title, 
-          description, 
-          summary,
-          tags: cleanTags,
-          category
+        await axios.put(`${API_ENDPOINTS.ANNOUNCEMENTS.BASE}/${editingId}`, formData, {
+          headers: { 'Content-Type': 'multipart/form-data' }
         });
         alert('Announcement Updated!');
       } else {
-        await axios.post('http://localhost:5001/api/announcements', { 
-          title, 
-          description, 
-          summary,
-          tags: cleanTags,
-          category,
-          authorId: user.id
+        formData.append('authorId', user?.id);
+        await axios.post(API_ENDPOINTS.ANNOUNCEMENTS.BASE, formData, {
+          headers: { 'Content-Type': 'multipart/form-data' }
         });
         alert('Announcement Posted Successfully!');
       }
       resetForm();
       fetchAnnouncements();
     } catch (err) {
-      alert('Failed to save announcement');
+      console.error('Error details:', err.response?.data || err.message);
+      alert('Failed to save announcement: ' + (err.response?.data?.message || err.message));
     } finally {
       setLoading(false);
     }
@@ -158,6 +300,13 @@ const TeacherDashboard = () => {
           <div className="flex justify-between h-16 items-center">
             <h1 className="text-2xl font-bold text-gray-900 tracking-tight">Teacher Portal</h1>
             <div className="flex items-center gap-4">
+              <button 
+                onClick={() => navigate('/history')}
+                className="bg-purple-200 hover:bg-purple-300 text-purple-700 px-4 py-2 rounded-lg font-medium transition-colors flex items-center gap-2"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"></path><path d="M21 3v5h-5"></path><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"></path><path d="M3 21v-5h5"></path></svg>
+                History
+              </button>
               <button 
                 onClick={() => { resetForm(); setShowForm(!showForm); }}
                 className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-medium transition-colors"
@@ -174,7 +323,7 @@ const TeacherDashboard = () => {
         
         <AnimatePresence>
           {showForm && (
-            <motion.div 
+            <Motion.div 
               initial={{ opacity: 0, height: 0 }}
               animate={{ opacity: 1, height: 'auto' }}
               exit={{ opacity: 0, height: 0 }}
@@ -225,20 +374,101 @@ const TeacherDashboard = () => {
                         <option value="Administrative/Misc">Administrative/Misc</option>
                         <option value="Co-curricular/Sports/Cultural">Co-curricular/Sports/Cultural</option>
                         <option value="Placement">Placement</option>
+                        <option value="Benefits">Benefits</option>
                       </select>
                       <p className="text-xs text-gray-400 mt-2">Select the category for this announcement</p>
                     </div>
+                    <div className="col-span-2 md:col-span-1">
+                      <label className="block text-sm font-semibold text-gray-700 mb-2">Audience</label>
+                      <div className="flex items-center gap-4">
+                        <label className="inline-flex items-center gap-2">
+                          <input type="radio" name="audience" value="Students" checked={audience === 'Students'} onChange={() => setAudience('Students')} />
+                          <span className="text-sm">Students</span>
+                        </label>
+                        <label className="inline-flex items-center gap-2">
+                          <input type="radio" name="audience" value="Faculty" checked={audience === 'Faculty'} onChange={() => setAudience('Faculty')} />
+                          <span className="text-sm">Faculty</span>
+                        </label>
+                        <label className="inline-flex items-center gap-2">
+                          <input type="radio" name="audience" value="Both" checked={audience === 'Both'} onChange={() => setAudience('Both')} />
+                          <span className="text-sm">Both</span>
+                        </label>
+                      </div>
+                      <p className="text-xs text-gray-400 mt-2">Who should receive this announcement?</p>
+                    </div>
                   </div>
 
-                  <div>
-                    <label className="block text-sm font-semibold text-gray-700 mb-2">Description</label>
-                    <textarea
-                      value={description}
-                      onChange={(e) => setDescription(e.target.value)}
-                      className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none h-32 resize-none bg-gray-50 focus:bg-white"
-                      placeholder="Enter the full details of the announcement..."
-                      required
-                    />
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6 bg-blue-50 p-6 rounded-xl border border-blue-200">
+                    <div>
+                      <label className="block text-sm font-semibold text-gray-700 mb-2">Upload Students (CSV / XLSX)</label>
+                      <input type="file" accept=".csv, application/vnd.openxmlformats-officedocument.spreadsheetml.sheet, application/vnd.ms-excel" onChange={handleStudentsFile} className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700" />
+                      <p className="text-xs text-gray-400 mt-2">Parsed students: <strong>{studentsList.length}</strong></p>
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-semibold text-gray-700 mb-2">Upload Staff (CSV / XLSX)</label>
+                      <input type="file" accept=".csv, application/vnd.openxmlformats-officedocument.spreadsheetml.sheet, application/vnd.ms-excel" onChange={handleStaffFile} className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700" />
+                      <p className="text-xs text-gray-400 mt-2">Parsed staff: <strong>{staffList.length}</strong></p>
+                    </div>
+                  </div>
+
+                  <div className="space-y-6">
+                    <div>
+                      <label className="block text-sm font-semibold text-gray-700 mb-2">Description</label>
+                      <textarea
+                        value={description}
+                        onChange={(e) => setDescription(e.target.value)}
+                        className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none h-32 resize-none bg-gray-50 focus:bg-white"
+                        placeholder="Enter the full details of the announcement..."
+                        required
+                      />
+                    </div>
+                  </div>
+
+                  <div className="bg-green-50 p-6 rounded-xl border border-green-200">
+                    <label className="block text-sm font-semibold text-gray-700 mb-4">📎 Attachments</label>
+                    <div className="mb-4">
+                      <input
+                        type="file"
+                        multiple
+                        onChange={handleAttachmentAdd}
+                        className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-green-50 file:text-green-700 hover:file:bg-green-100"
+                      />
+                      <p className="text-xs text-gray-400 mt-2">Upload documents, images, PDFs, etc.</p>
+                    </div>
+
+                    {attachments.length > 0 && (
+                      <div className="space-y-2">
+                        <p className="text-sm font-medium text-gray-600 mb-3">
+                          {editingId ? `Files: ${attachments.length}` : `Selected files: ${attachments.length}`}
+                        </p>
+                        {attachments.map((att) => (
+                          <div key={att.id} className={`flex items-center justify-between p-3 rounded-lg border transition-colors ${
+                            att.isExisting 
+                              ? 'bg-blue-50 border-blue-200 hover:border-blue-300' 
+                              : 'bg-white border-gray-200 hover:border-green-300'
+                          }`}>
+                            <div className="flex items-center gap-3">
+                              <span className="text-2xl">{getFileIcon(att.name)}</span>
+                              <div>
+                                <p className="font-medium text-gray-900 text-sm truncate">{att.name}</p>
+                                <p className="text-xs text-gray-500">
+                                  {formatFileSize(att.size)}
+                                  {att.isExisting && <span className="ml-2 text-blue-600 font-semibold">(existing)</span>}
+                                </p>
+                              </div>
+                            </div>
+                            <button
+                              type="button"
+                              onClick={() => handleAttachmentRemove(att.id)}
+                              className="text-red-500 hover:text-red-700 hover:bg-red-50 p-2 rounded-lg transition-colors"
+                            >
+                              <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path><line x1="10" y1="11" x2="10" y2="17"></line><line x1="14" y1="11" x2="14" y2="17"></line></svg>
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                    )}
                   </div>
 
                   <div>
@@ -263,13 +493,13 @@ const TeacherDashboard = () => {
                   </div>
                 </form>
               </div>
-            </motion.div>
+            </Motion.div>
           )}
         </AnimatePresence>
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {announcements.map((item) => (
-            <motion.div 
+            <Motion.div 
               layout
               key={item._id} 
               className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden hover:shadow-md transition-shadow"
@@ -326,7 +556,7 @@ const TeacherDashboard = () => {
                   </span>
                 </div>
               </div>
-            </motion.div>
+            </Motion.div>
           ))}
         </div>
 
@@ -341,14 +571,14 @@ const TeacherDashboard = () => {
       {/* Image Management Modal */}
       <AnimatePresence>
         {showImageModal && selectedAnnouncement && (
-          <motion.div
+          <Motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4"
             onClick={() => setShowImageModal(false)}
           >
-            <motion.div
+            <Motion.div
               initial={{ scale: 0.9, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
               exit={{ scale: 0.9, opacity: 0 }}
@@ -432,8 +662,8 @@ const TeacherDashboard = () => {
                   </button>
                 </div>
               </div>
-            </motion.div>
-          </motion.div>
+            </Motion.div>
+          </Motion.div>
         )}
       </AnimatePresence>
     </div>

@@ -11,13 +11,16 @@ const Login = () => {
 
   const handleLogin = async (e) => {
     e.preventDefault();
+    setError('');
     try {
       const res = await axios.post('http://localhost:5001/api/auth/login', { regId, password });
-      if (res.data.role !== role) {
+      // Check if user role matches selected role
+      if (res.data.user.role !== role) {
         setError('Invalid role selected for this user');
         return;
       }
       localStorage.setItem('user', JSON.stringify(res.data));
+      // Navigate after successful login
       if (role === 'teacher') {
         navigate('/dashboard');
       } else {

@@ -1,42 +1,64 @@
 import React, { useEffect, useState } from 'react';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion as Motion, AnimatePresence } from 'framer-motion';
+import API_ENDPOINTS from '../config/api';
 
 const StudentFeed = () => {
   const [announcements, setAnnouncements] = useState([]);
   const [filteredAnnouncements, setFilteredAnnouncements] = useState([]);
   
-  // FIX 1: Ensure default state matches the first category
   const [selectedCategory, setSelectedCategory] = useState('All'); 
   const [selectedAnnouncement, setSelectedAnnouncement] = useState(null);
   const navigate = useNavigate();
 
-  // FIX 2: Variable name consistency
-  const categories = ['All', 'Academic', 'Administrative/Misc', 'Co-curricular/Sports/Cultural', 'Placement'];
+  const userData = JSON.parse(localStorage.getItem('user'));
+  const currentStudent = userData?.user;
+
+  const categories = ['All', 'Academic', 'Administrative/Misc', 'Co-curricular/Sports/Cultural', 'Placement', 'Benefits'];
 
   useEffect(() => {
-    // Replace with your actual API endpoint
     const fetchAnnouncements = async () => {
       try {
-        const res = await axios.get('http://localhost:5001/api/announcements');
-        setAnnouncements(res.data);
-        // Initialize filtered list with all data
-        setFilteredAnnouncements(res.data); 
+        const res = await axios.get(API_ENDPOINTS.ANNOUNCEMENTS.BASE);
+        
+        // Filter announcements for students
+        const studentAnnouncements = res.data.filter(announcement => {
+          // Check if audience includes students
+          if (announcement.audience !== 'Students' && announcement.audience !== 'Both') {
+            return false;
+          }
+          
+          // If there's a specific student list and it's not empty, check if current student is in it
+          if (announcement.students && announcement.students.length > 0) {
+            return announcement.students.some(
+              student => student.regId === currentStudent?.regId
+            );
+          }
+          
+          // If no specific student list or it's empty, show to all students
+          return true;
+        });
+        
+        setAnnouncements(studentAnnouncements);
+        setFilteredAnnouncements(studentAnnouncements); 
       } catch (err) {
-        console.error(err);
+        // Silently handle - UI shows empty state
       }
     };
     fetchAnnouncements();
-  }, []);
+  }, [currentStudent?.regId]);
 
-  // FIX 3: Fixed Filter Logic to match 'All'
   useEffect(() => {
+    let newFiltered;
     if (selectedCategory === 'All') {
-      setFilteredAnnouncements(announcements);
+      newFiltered = announcements;
     } else {
-      setFilteredAnnouncements(announcements.filter(item => item.category === selectedCategory));
+      newFiltered = announcements.filter(item => 
+        item.category === selectedCategory || item.category === 'All'
+      );
     }
+    setFilteredAnnouncements(newFiltered);
   }, [selectedCategory, announcements]);
 
   const handleLogout = () => {
@@ -89,14 +111,23 @@ const StudentFeed = () => {
                 ))}
               </div>
 
-              {/* Logout Icon */}
-              <button 
-                onClick={handleLogout}
-                className="text-zinc-500 hover:text-white transition-colors"
-                title="Logout"
-              >
-                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><polyline points="16 17 21 12 16 7"></polyline><line x1="21" y1="12" x2="9" y2="12"></line></svg>
-              </button>
+              {/* History and Logout Icons */}
+              <div className="flex items-center gap-3">
+                <button 
+                  onClick={() => navigate('/history')}
+                  className="text-purple-300 hover:text-purple-200 transition-colors"
+                  title="History"
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"></path><path d="M21 3v5h-5"></path><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"></path><path d="M3 21v-5h5"></path></svg>
+                </button>
+                <button 
+                  onClick={handleLogout}
+                  className="text-zinc-500 hover:text-white transition-colors"
+                  title="Logout"
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><polyline points="16 17 21 12 16 7"></polyline><line x1="21" y1="12" x2="9" y2="12"></line></svg>
+                </button>
+              </div>
             </div>
           </div>
 
@@ -164,24 +195,32 @@ const StudentFeed = () => {
           <div className="absolute top-0 left-0 w-full z-50 bg-gradient-to-b from-black/80 to-transparent pt-4 pb-12 pointer-events-none">
             <div className="max-w-7xl mx-auto px-8 flex items-center justify-between pointer-events-auto">
               <h1 className="text-white text-3xl font-bold tracking-tight">Announce<span className="text-zinc-500">Shorts</span></h1>
-              <div className="flex items-center gap-4 bg-black/40 backdrop-blur-xl border border-white/10 p-1.5 rounded-full">
-                 {categories.map((cat) => (
-                  <button
-                    key={cat}
-                    onClick={() => setSelectedCategory(cat)}
-                    className={`px-4 py-1.5 rounded-full text-xs font-medium transition-all ${
-                      selectedCategory === cat
-                        ? 'bg-white text-black shadow-lg'
-                        : 'text-zinc-400 hover:text-white hover:bg-white/10'
-                    }`}
-                  >
-                    {cat}
-                  </button>
-                ))}
+              <div className="flex items-center gap-4">
+                <div className="bg-black/40 backdrop-blur-xl border border-white/10 p-1.5 rounded-full flex items-center gap-1.5">
+                  {categories.map((cat) => (
+                    <button
+                      key={cat}
+                      onClick={() => setSelectedCategory(cat)}
+                      className={`px-4 py-1.5 rounded-full text-xs font-medium transition-all ${
+                        selectedCategory === cat
+                          ? 'bg-white text-black shadow-lg'
+                          : 'text-zinc-400 hover:text-white hover:bg-white/10'
+                      }`}
+                    >
+                      {cat}
+                    </button>
+                  ))}
+                </div>
+                <button 
+                  onClick={() => navigate('/history')}
+                  className="px-4 py-1.5 rounded-full text-xs font-medium transition-all text-zinc-400 hover:text-white hover:bg-white/10 bg-black/40 backdrop-blur-xl border border-white/10"
+                >
+                  History
+                </button>
               </div>
               <button 
                 onClick={handleLogout}
-                className="bg-white/10 hover:bg-white/20 backdrop-blur-md px-5 py-2 rounded-full text-white text-sm transition-all"
+                className="bg-white/10 hover:bg-white/20 backdrop-blur-xl px-5 py-2 rounded-full text-white text-sm transition-all border border-white/10"
               >
                 Logout
               </button>
@@ -228,14 +267,14 @@ const StudentFeed = () => {
         {/* ================= MODAL ================= */}
         <AnimatePresence>
           {selectedAnnouncement && (
-            <motion.div 
+            <Motion.div 
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               className="fixed inset-0 z-[60] flex items-center justify-center p-4 md:p-8 bg-black/95 backdrop-blur-sm"
               onClick={() => setSelectedAnnouncement(null)}
             >
-              <motion.div 
+              <Motion.div 
                 initial={{ scale: 0.95, opacity: 0, y: 20 }}
                 animate={{ scale: 1, opacity: 1, y: 0 }}
                 exit={{ scale: 0.95, opacity: 0, y: 20 }}
@@ -255,9 +294,51 @@ const StudentFeed = () => {
                   <div className="prose prose-invert prose-p:text-zinc-300 prose-headings:text-white max-w-none">
                     <p className="text-white whitespace-pre-wrap">{selectedAnnouncement.originalDescription}</p>
                   </div>
+
+                  {/* Attachments Section */}
+                  {selectedAnnouncement.attachments && selectedAnnouncement.attachments.length > 0 && (
+                    <div className="mt-8 pt-6 border-t border-zinc-700">
+                      <h3 className="text-white font-semibold mb-4 flex items-center gap-2">
+                        📎 Attachments ({selectedAnnouncement.attachments.length})
+                      </h3>
+                      <div className="space-y-2">
+                        {selectedAnnouncement.attachments.map((att) => {
+                          const ext = att.fileName.split('.').pop().toLowerCase();
+                          const iconMap = {
+                            pdf: '📕', doc: '📘', docx: '📘',
+                            xls: '📗', xlsx: '📗', ppt: '📙', pptx: '📙',
+                            txt: '📄', jpg: '🖼️', jpeg: '🖼️', png: '🖼️', gif: '🖼️',
+                            zip: '📦', rar: '📦'
+                          };
+                          const icon = iconMap[ext] || '📎';
+                          const fileSize = att.fileSize ? `${(att.fileSize / 1024).toFixed(1)} KB` : 'Unknown size';
+
+                          return (
+                            <a
+                              key={att._id}
+                              href={`${API_ENDPOINTS.BASE_URL}${att.fileUrl}`}
+                              download={att.fileName}
+                              className="flex items-center justify-between bg-zinc-800 hover:bg-zinc-700 p-4 rounded-lg transition-colors border border-zinc-700 hover:border-zinc-600 group"
+                            >
+                              <div className="flex items-center gap-3 flex-1 min-w-0">
+                                <span className="text-2xl">{icon}</span>
+                                <div className="min-w-0">
+                                  <p className="font-medium text-white truncate text-sm">{att.fileName}</p>
+                                  <p className="text-xs text-zinc-400">{fileSize}</p>
+                                </div>
+                              </div>
+                              <svg className="w-5 h-5 text-blue-400 group-hover:text-blue-300 flex-shrink-0 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                              </svg>
+                            </a>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  )}
                 </div>
-              </motion.div>
-            </motion.div>
+              </Motion.div>
+            </Motion.div>
           )}
         </AnimatePresence>
       </div>
