@@ -40,11 +40,6 @@ router.post('/', upload.array('files'), async (req, res) => {
       return res.status(400).json({ message: 'Title must be less than 200 characters' });
     }
 
-    // Validate description length
-    if (description.length > 5000) {
-      return res.status(400).json({ message: 'Description must be less than 5000 characters' });
-    }
-
     // Parse JSON fields from FormData
     let parsedTags = [];
     let parsedStudents = [];

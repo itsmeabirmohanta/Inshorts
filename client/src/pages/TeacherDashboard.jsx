@@ -206,7 +206,9 @@ const TeacherDashboard = () => {
   const handleDelete = async (id) => {
     if (!window.confirm('Are you sure you want to delete this announcement?')) return;
     try {
-      await axios.delete(`${API_ENDPOINTS.ANNOUNCEMENTS.BASE}/${id}`);
+      await axios.delete(`${API_ENDPOINTS.ANNOUNCEMENTS.BASE}/${id}`, {
+        data: { authorId: user?.id }
+      });
       fetchAnnouncements();
     } catch (error) {
       console.error('Delete failed:', error);
@@ -225,7 +227,8 @@ const TeacherDashboard = () => {
     setImageLoading(true);
     try {
       const res = await axios.post(`${API_ENDPOINTS.ANNOUNCEMENTS.BASE}/${selectedAnnouncement._id}/regenerate-image`, {
-        customImageUrl: customImageUrl.trim()
+        customImageUrl: customImageUrl.trim(),
+        authorId: user?.id
       });
       // Update announcements list
       setAnnouncements(announcements.map(a => a._id === res.data._id ? res.data : a));

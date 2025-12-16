@@ -54,7 +54,9 @@ const StudentFeed = () => {
     if (selectedCategory === 'All') {
       newFiltered = announcements;
     } else {
-      newFiltered = announcements.filter(item => item.category === selectedCategory);
+      newFiltered = announcements.filter(item => 
+        item.category === selectedCategory || item.category === 'All'
+      );
     }
     setFilteredAnnouncements(newFiltered);
   }, [selectedCategory, announcements]);
