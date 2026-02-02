@@ -1,240 +1,228 @@
-# Inshorts University Announcement Platform 📢
+# 🎓 Inshorts - University Announcement Platform
 
-A modern MERN stack application for managing university announcements with AI-powered content generation. Teachers can create and manage announcements while students can view them in a beautifully designed feed with category filters.
+> A modern, fast, and beautiful university announcement system built with the MERN stack. Teachers create announcements with AI-powered summaries, students view them in an elegant feed.
 
 ![License](https://img.shields.io/badge/license-MIT-blue.svg)
 ![React](https://img.shields.io/badge/React-19.2.0-61DAFB?logo=react)
-![Node](https://img.shields.io/badge/Node.js-Express-339933?logo=node.js)
+![Node.js](https://img.shields.io/badge/Node.js-v16+-339933?logo=node.js)
 ![MongoDB](https://img.shields.io/badge/MongoDB-Database-47A248?logo=mongodb)
 
-## ✨ Features
+## ✨ Key Features
 
-- 🤖 **AI-Powered Content**: Automatic 60-word summaries generated using Google Gemini 2.0 Flash
-- 🖼️ **Smart Image Selection**: Auto-generates relevant images using Pexels API with fallback
-- 👥 **Role-Based Access**: Separate dashboards for teachers (CRUD) and students (view-only)
-- 🎨 **Modern UI**: React 19 + Tailwind CSS v4 with Framer Motion animations
-- 📱 **Responsive Design**: Mobile-first approach with optimized layouts
-- 🏷️ **Category System**: Academic, Administrative, Co-curricular, and Placement categories
-- 🔍 **Smart Filtering**: Filter announcements by category with animated transitions
-- 📦 **Monorepo Structure**: Organized workspace with concurrent dev servers
+- 🤖 **AI-Powered Summaries** - Automatic 60-word summaries using Google Gemini 2.0
+- 🎨 **Beautiful UI** - React 19 + Tailwind CSS v4 with smooth Framer Motion animations
+- �� **Role-Based Access** - Separate teacher (create/edit) and student (view) dashboards
+- 🏷️ **Smart Categories** - Academic, Administrative, Placement, Sports, Benefits
+- 📱 **Fully Responsive** - Mobile-first design that works everywhere
+- ⚡ **Lightning Fast** - Optimized with Vite for instant hot reload
+- 🔍 **Advanced Filtering** - Filter announcements by category with real-time updates
+- 📎 **File Attachments** - Support for documents, images, and other files
 
-## 🚀 Tech Stack
+## 🚀 Quick Start
 
-### Frontend
-- **React 19** - Latest React with new rendering patterns
-- **Vite** - Lightning-fast build tool
-- **Tailwind CSS v4** - Utility-first styling with Vite plugin
-- **Framer Motion** - Smooth animations and transitions
-- **React Router v7** - Client-side routing
-- **Axios** - HTTP client for API calls
+### Prerequisites
 
-### Backend
-- **Node.js + Express 5** - Server framework
-- **MongoDB + Mongoose** - Database and ODM
-- **Google Gemini AI** - Content summarization
-- **Pexels API** - Image search and selection
-- **CORS** - Cross-origin resource sharing
-- **dotenv** - Environment variable management
+- Node.js v16+ 
+- MongoDB Atlas account (or local MongoDB)
+- Google Gemini API key ([Get free key](https://aistudio.google.com/app/apikey))
 
-## 📋 Prerequisites
+### Installation
 
-- Node.js (v16 or higher)
-- MongoDB Atlas account or local MongoDB instance
-- Google Gemini API key ([Get one here](https://makersuite.google.com/app/apikey))
-- Pexels API key ([Get one here](https://www.pexels.com/api/)) - Optional
-
-## 🛠️ Installation
-
-### 1. Clone the repository
-```bash
-git clone https://github.com/Parvaggarwal01/Inshorts.git
+\`\`\`bash
+# Clone the repository
+git clone https://github.com/yourusername/Inshorts.git
 cd Inshorts
-```
 
-### 2. Install all dependencies
-```bash
+# Install all dependencies (root + server + client)
 npm run install:all
-```
-This command installs dependencies for root, server, and client.
 
-### 3. Configure environment variables
+# Configure environment variables (see below)
 
-Create a `.env` file in the `server/` directory:
+# Start the application
+npm start
+\`\`\`
 
-```env
+The application will open at:
+- **Frontend**: http://localhost:5173
+- **Backend**: http://localhost:5001
+
+### Environment Setup
+
+Create \`server/.env\` file:
+
+\`\`\`env
+# Database
 MONGO_URI=your_mongodb_connection_string
+
+# AI Services
 GEMINI_API_KEY=your_gemini_api_key
+
+# Server
 PORT=5001
-PEXELS_API_KEY=your_pexels_api_key  # Optional, falls back to Picsum
-```
+JWT_SECRET=your-super-secret-jwt-key
+JWT_EXPIRES_IN=24h
 
-See `.env.example` for reference.
+# Optional: Image API
+PEXELS_API_KEY=your_pexels_api_key
+\`\`\`
 
-### 4. Start the application
+## 👤 Default Login Credentials
 
-```bash
-npm start
-```
+**Teacher Account**
+- Registration ID: \`teacher1\`
+- Password: \`pass123\`
 
-This runs both client and server concurrently:
-- **Client**: http://localhost:3000 (or next available port)
-- **Server**: http://localhost:5001
+**Student Account**
+- Registration ID: \`student1\`
+- Password: \`pass123\`
 
-### Alternative: Run separately
-
-```bash
-# Terminal 1 - Server
-cd server
-npm start
-
-# Terminal 2 - Client  
-cd client
-npm run dev
-```
-
-## 👤 Default Users
-
-The database auto-seeds with default credentials:
-
-**Teacher Account:**
-- Registration ID: `teacher1`
-- Password: `pass123`
-
-**Student Account:**
-- Registration ID: `student1`
-- Password: `pass123`
+> ⚠️ Change these credentials in production!
 
 ## 📁 Project Structure
 
-```
+\`\`\`
 Inshorts/
-├── client/                 # React frontend
+├── client/                    # React Frontend
 │   ├── src/
-│   │   ├── pages/         # Route components
-│   │   │   ├── Login.jsx
-│   │   │   ├── TeacherDashboard.jsx
-│   │   │   └── StudentFeed.jsx
-│   │   ├── App.jsx        # Main app with routing
-│   │   └── main.jsx       # Entry point
-│   ├── public/            # Static assets
+│   │   ├── pages/            # Route components
+│   │   ├── config/           # API endpoints
+│   │   ├── App.jsx           # Main app with routing
+│   │   └── main.jsx          # Entry point
 │   └── package.json
 │
-├── server/                # Express backend
-│   ├── models/           # Mongoose schemas
-│   │   ├── User.js
-│   │   └── Announcement.js
-│   ├── routes/           # API endpoints
-│   │   ├── auth.js       # Login/authentication
-│   │   └── announcements.js  # CRUD operations
-│   ├── services/         # Business logic
-│   │   └── ai.js         # Gemini & Pexels integration
-│   ├── server.js         # Entry point
+├── server/                    # Express Backend
+│   ├── models/               # Mongoose schemas
+│   ├── routes/               # API endpoints
+│   ├── services/             # Business logic (AI)
+│   ├── utils/                # Utilities
+│   ├── middleware/           # Express middleware
+│   ├── scripts/              # Utility scripts
+│   ├── server.js             # Entry point
 │   └── package.json
 │
-└── package.json          # Root scripts
-```
+└── package.json              # Root scripts
+\`\`\`
 
-## 🔑 Key Features Explained
-
-### AI Content Generation
-
-When a teacher creates an announcement:
-1. **Summary Generation**: Gemini AI creates a 60-word summary from the description
-2. **Image Selection**: Pexels API searches for relevant images based on title and tags
-3. **Fallback Handling**: Uses Picsum Lorem if Pexels API is unavailable
-
-Teachers can manually provide a summary to skip AI generation.
-
-### Role-Based Access
-
-- **Teachers** (`/dashboard`): 
-  - Create, edit, and delete announcements
-  - Auto-generate or manually enter summaries
-  - Add up to 3 tags for better image generation
-  
-- **Students** (`/feed`):
-  - View all announcements in a beautiful feed
-  - Filter by categories
-  - Mobile-optimized card layout with animations
-
-### Update Behavior
-
-When editing an announcement:
-- AI regenerates summary ONLY if `title` or `description` changes
-- Images regenerate ONLY if `title` or `tags` change
-- Provide existing summary to prevent regeneration
-
-## 🌐 API Endpoints
+## 🔌 API Endpoints
 
 ### Authentication
-```
+\`\`\`http
 POST /api/auth/login
-  Body: { regId, password }
-  Returns: { id, regId, role }
-```
+Body: { regId: string, password: string }
+Response: { token, user: { id, regId, role } }
+\`\`\`
 
 ### Announcements
-```
-GET    /api/announcements              # Get all
-GET    /api/announcements/:id          # Get single
+\`\`\`http
+GET    /api/announcements              # Get all announcements
+GET    /api/announcements?authorId=id  # Filter by author
 POST   /api/announcements              # Create (Teacher only)
-  Body: { title, description, category, tags[], authorId, summary? }
 PUT    /api/announcements/:id          # Update (Teacher only)
 DELETE /api/announcements/:id          # Delete (Teacher only)
-```
+\`\`\`
 
-## 🎨 Categories
+## 🎨 Tech Stack
 
-- **All** - View all announcements
-- **Academic** - Classes, exams, results
-- **Administrative/Misc** - General notices
-- **Co-curricular/Sports/Cultural** - Events and activities  
-- **Placement** - Job opportunities and campus recruitment
+**Frontend**
+- React 19 with latest features
+- Vite - Lightning-fast build tool
+- Tailwind CSS v4 - Modern utility-first styling
+- Framer Motion - Smooth animations
+- React Router v7 - Client-side routing
+- Axios - HTTP requests
 
-## 🚦 Common Issues
+**Backend**
+- Node.js + Express 5
+- MongoDB + Mongoose
+- Google Gemini 2.0 - AI summarization
+- bcryptjs - Password security
+- Multer - File uploads
 
-### API URL Hardcoded
-The client uses `http://localhost:5001/api` directly. For production, update this in relevant components.
+## 📝 How It Works
 
-### No JWT Authentication
-Uses simple localStorage-based auth. Consider implementing JWT for production.
+### Creating Announcements (Teachers)
+1. Login with teacher credentials
+2. Click "+ New Announcement"
+3. Fill in title, description, select category
+4. Add up to 3 tags for better image generation
+5. Select target audience (Students/Faculty/Both)
+6. AI generates a 60-word summary automatically
+7. System selects a relevant image (Pexels/fallback)
+8. Attach files if needed
+9. Publish!
 
-### Environment Variables
-Ensure `.env` file is in the `server/` directory, not root.
+### Viewing Announcements (Students)
+1. Login with student credentials
+2. Browse beautiful announcement cards
+3. Filter by categories (All, Academic, Placement, etc.)
+4. Click "Read Full Announcement" for details
+5. Download attachments if available
 
-### Port Conflicts
-If port 5001 is busy, change `PORT` in `.env` and update client API calls.
+## 🛠️ Development
+
+\`\`\`bash
+# Run server only
+cd server && npm run dev
+
+# Run client only
+cd client && npm run dev
+
+# Run both (from root)
+npm start
+\`\`\`
+
+## 🚀 Performance Optimizations
+
+- ✅ MongoDB indexing on frequently queried fields
+- ✅ Client-side filtering for instant category switches
+- ✅ Optimized image loading
+- ✅ Minimal bundle size with tree-shaking
+- ✅ Production-ready error handling
+- ✅ Secure password hashing
+- ✅ Rate limiting on login endpoints
+
+## �� Security Features
+
+- Password hashing with bcryptjs
+- Input sanitization to prevent XSS
+- Rate limiting on authentication
+- JWT token-based sessions
+- CORS configuration
+- Helmet.js security headers
+
+## 📦 Deployment
+
+### Backend (Node.js)
+- Recommended: Railway, Render, Heroku
+- Set environment variables
+- Configure \`MONGO_URI\` to production database
+- Set \`NODE_ENV=production\`
+
+### Frontend (React)
+- Recommended: Vercel, Netlify
+- Update API base URL in \`client/src/config/api.js\`
+- Build command: \`npm run build\`
+- Output directory: \`client/dist\`
 
 ## 🤝 Contributing
 
-Contributions are welcome! Please follow these steps:
-
+Contributions welcome! Please:
 1. Fork the repository
-2. Create a feature branch (`git checkout -b feature/AmazingFeature`)
-3. Commit your changes (`git commit -m 'Add some AmazingFeature'`)
-4. Push to the branch (`git push origin feature/AmazingFeature`)
+2. Create a feature branch
+3. Commit changes
+4. Push to branch
 5. Open a Pull Request
-
-See [CONTRIBUTING.md](CONTRIBUTING.md) for detailed guidelines.
 
 ## 📄 License
 
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
-
-## 👨‍💻 Authors
-
-- **Parvaggarwal01** - [GitHub Profile](https://github.com/Parvaggarwal01)
+MIT License - see [LICENSE](LICENSE) file for details.
 
 ## 🙏 Acknowledgments
 
-- Google Gemini AI for content generation
-- Pexels for beautiful stock photos
-- React and Vite communities for amazing tools
-- Tailwind CSS for the utility-first approach
-
-## 📧 Contact
-
-For questions or support, please open an issue on GitHub.
+- Google Gemini AI for intelligent content generation
+- Pexels for beautiful free stock photos
+- The React and Vite communities
+- Tailwind CSS for amazing styling utilities
 
 ---
 

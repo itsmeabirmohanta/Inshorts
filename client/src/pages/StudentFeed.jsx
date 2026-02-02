@@ -1,41 +1,106 @@
-import React, { useEffect, useState } from 'react';
-import axios from 'axios';
+import React, { useEffect, useState, useRef } from 'react';
+import axiosInstance from '../config/axios';
 import { useNavigate } from 'react-router-dom';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion as Motion, AnimatePresence } from 'framer-motion';
+import API_ENDPOINTS from '../config/api';
 
 const StudentFeed = () => {
   const [announcements, setAnnouncements] = useState([]);
   const [filteredAnnouncements, setFilteredAnnouncements] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
   
-  // FIX 1: Ensure default state matches the first category
   const [selectedCategory, setSelectedCategory] = useState('All'); 
   const [selectedAnnouncement, setSelectedAnnouncement] = useState(null);
   const navigate = useNavigate();
+  const mobileScrollRef = useRef(null);
+  const desktopScrollRef = useRef(null);
 
-  // FIX 2: Variable name consistency
-  const categories = ['All', 'Academic', 'Administrative/Misc', 'Co-curricular/Sports/Cultural', 'Placement'];
+  // Safely parse user data from localStorage
+  const getUserData = () => {
+    try {
+      const stored = localStorage.getItem('user');
+      return stored ? JSON.parse(stored) : null;
+    } catch (err) {
+      console.error('Failed to parse user data:', err);
+      localStorage.removeItem('user');
+      navigate('/');
+      return null;
+    }
+  };
+
+  const userData = getUserData();
+  const currentStudent = userData?.user;
+
+  const categories = ['All', 'Academic', 'Administrative/Misc', 'Sports/Cultural', 'Placement', 'Benefits', 'Competitions'];
 
   useEffect(() => {
-    // Replace with your actual API endpoint
     const fetchAnnouncements = async () => {
       try {
-        const res = await axios.get('http://localhost:5001/api/announcements');
-        setAnnouncements(res.data);
-        // Initialize filtered list with all data
-        setFilteredAnnouncements(res.data); 
+        setLoading(true);
+        setError(null);
+        const res = await axiosInstance.get(API_ENDPOINTS.ANNOUNCEMENTS.BASE);
+        
+        // Extract data from the response (API returns { success: true, data: [...] })
+        const allAnnouncements = res.data?.data || [];
+        
+        // Filter announcements for students
+        const studentAnnouncements = allAnnouncements.filter(announcement => {
+          // Check if audience includes students
+          if (announcement.audience !== 'Students' && announcement.audience !== 'Both') {
+            return false;
+          }
+          
+          // If there's a specific student list and it's not empty, check if current student is in it
+          if (announcement.students && announcement.students.length > 0) {
+            return announcement.students.some(
+              student => student.regId === currentStudent?.regId
+            );
+          }
+          
+          // If no specific student list or it's empty, show to all students
+          return true;
+        });
+        
+        setAnnouncements(studentAnnouncements);
+        setFilteredAnnouncements(studentAnnouncements);
       } catch (err) {
-        console.error(err);
+        console.error('Failed to fetch announcements:', err);
+        setError(err.response?.data?.error || err.message || 'Failed to load announcements');
+        setAnnouncements([]);
+        setFilteredAnnouncements([]);
+      } finally {
+        setLoading(false);
       }
     };
     fetchAnnouncements();
-  }, []);
+  }, [currentStudent?.regId]);
 
-  // FIX 3: Fixed Filter Logic to match 'All'
   useEffect(() => {
+    let newFiltered;
     if (selectedCategory === 'All') {
-      setFilteredAnnouncements(announcements);
+      newFiltered = announcements;
     } else {
-      setFilteredAnnouncements(announcements.filter(item => item.category === selectedCategory));
+      newFiltered = announcements.filter(item => {
+        // Match exact category
+        if (item.category === selectedCategory) return true;
+        // Handle backward compatibility for Sports/Cultural
+        if (selectedCategory === 'Sports/Cultural' && item.category === 'Co-curricular/Sports/Cultural') return true;
+        // DON'T show "All" category in specific filters - only show exact matches
+        return false;
+      });
+    }
+    console.log('Selected Category:', selectedCategory);
+    console.log('Filtered Announcements:', newFiltered.length);
+    console.log('All announcements:', announcements.map(a => ({ title: a.title, cat: a.category })));
+    setFilteredAnnouncements(newFiltered);
+    
+    // Scroll to top when category changes
+    if (mobileScrollRef.current) {
+      mobileScrollRef.current.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+    if (desktopScrollRef.current) {
+      desktopScrollRef.current.scrollTo({ top: 0, behavior: 'smooth' });
     }
   }, [selectedCategory, announcements]);
 
@@ -44,10 +109,40 @@ const StudentFeed = () => {
     navigate('/');
   };
 
-  if (announcements.length === 0) {
+  if (loading) {
     return (
       <div className="h-[100dvh] flex items-center justify-center bg-black text-white">
         <p className="text-xl font-light animate-pulse">Loading feed...</p>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="h-[100dvh] flex flex-col items-center justify-center bg-black text-white gap-4">
+        <p className="text-xl font-light text-red-400">Failed to load announcements</p>
+        <p className="text-sm text-gray-400">{error}</p>
+        <button 
+          onClick={() => window.location.reload()} 
+          className="px-6 py-2 bg-white text-black rounded-lg hover:bg-gray-200 transition"
+        >
+          Retry
+        </button>
+      </div>
+    );
+  }
+
+  if (announcements.length === 0) {
+    return (
+      <div className="h-[100dvh] flex flex-col items-center justify-center bg-black text-white gap-4">
+        <p className="text-xl font-light">No announcements yet</p>
+        <p className="text-sm text-gray-400">Check back later for updates</p>
+        <button 
+          onClick={handleLogout}
+          className="px-6 py-2 bg-white text-black rounded-lg hover:bg-gray-200 transition mt-4"
+        >
+          Logout
+        </button>
       </div>
     );
   }
@@ -77,7 +172,10 @@ const StudentFeed = () => {
                 {categories.map((cat) => (
                   <button
                     key={cat}
-                    onClick={() => setSelectedCategory(cat)}
+                    onClick={() => {
+                      console.log('Button clicked:', cat);
+                      setSelectedCategory(cat);
+                    }}
                     className={`whitespace-nowrap text-[15px] transition-colors duration-200 ${
                       selectedCategory === cat
                         ? 'text-blue-500 font-bold' 
@@ -89,21 +187,41 @@ const StudentFeed = () => {
                 ))}
               </div>
 
-              {/* Logout Icon */}
-              <button 
-                onClick={handleLogout}
-                className="text-zinc-500 hover:text-white transition-colors"
-                title="Logout"
-              >
-                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><polyline points="16 17 21 12 16 7"></polyline><line x1="21" y1="12" x2="9" y2="12"></line></svg>
-              </button>
+              {/* History and Logout Icons */}
+              <div className="flex items-center gap-3">
+                <button 
+                  onClick={() => navigate('/history')}
+                  className="text-purple-300 hover:text-purple-200 transition-colors"
+                  title="History"
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"></path><path d="M21 3v5h-5"></path><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"></path><path d="M3 21v-5h5"></path></svg>
+                </button>
+                <button 
+                  onClick={handleLogout}
+                  className="text-zinc-500 hover:text-white transition-colors"
+                  title="Logout"
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><polyline points="16 17 21 12 16 7"></polyline><line x1="21" y1="12" x2="9" y2="12"></line></svg>
+                </button>
+              </div>
             </div>
           </div>
 
           {/* Feed Area */}
-          <div className="flex-1 overflow-y-scroll snap-y snap-mandatory no-scrollbar bg-black">
-            {filteredAnnouncements.map((item) => (
-              <div key={item._id} className="h-full w-full snap-start flex flex-col relative">
+          <div ref={mobileScrollRef} className="flex-1 overflow-y-scroll snap-y snap-mandatory no-scrollbar bg-black">
+            {filteredAnnouncements.length === 0 ? (
+              <div className="h-full w-full flex flex-col items-center justify-center">
+                <p className="text-zinc-400 text-lg">No announcements in this category</p>
+                <button 
+                  onClick={() => setSelectedCategory('All')}
+                  className="mt-4 px-6 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition"
+                >
+                  View All
+                </button>
+              </div>
+            ) : (
+              filteredAnnouncements.map((item) => (
+                <div key={item._id} className="h-full w-full snap-start flex flex-col relative">
                 
                 {/* Image Section */}
                 <div className="h-[40%] w-full relative shrink-0">
@@ -155,7 +273,8 @@ const StudentFeed = () => {
                   </div>
                 </div>
               </div>
-            ))}
+            ))
+            )}
           </div>
         </div>
 
@@ -164,78 +283,102 @@ const StudentFeed = () => {
           <div className="absolute top-0 left-0 w-full z-50 bg-gradient-to-b from-black/80 to-transparent pt-4 pb-12 pointer-events-none">
             <div className="max-w-7xl mx-auto px-8 flex items-center justify-between pointer-events-auto">
               <h1 className="text-white text-3xl font-bold tracking-tight">Announce<span className="text-zinc-500">Shorts</span></h1>
-              <div className="flex items-center gap-4 bg-black/40 backdrop-blur-xl border border-white/10 p-1.5 rounded-full">
-                 {categories.map((cat) => (
-                  <button
-                    key={cat}
-                    onClick={() => setSelectedCategory(cat)}
-                    className={`px-4 py-1.5 rounded-full text-xs font-medium transition-all ${
-                      selectedCategory === cat
-                        ? 'bg-white text-black shadow-lg'
-                        : 'text-zinc-400 hover:text-white hover:bg-white/10'
-                    }`}
-                  >
-                    {cat}
-                  </button>
-                ))}
+              <div className="flex items-center gap-4">
+                <div className="bg-black/40 backdrop-blur-xl border border-white/10 p-1.5 rounded-full flex items-center gap-1.5">
+                  {categories.map((cat) => (
+                    <button
+                      key={cat}
+                      onClick={() => {
+                        console.log('Desktop button clicked:', cat);
+                        setSelectedCategory(cat);
+                      }}
+                      className={`px-4 py-1.5 rounded-full text-xs font-medium transition-all ${
+                        selectedCategory === cat
+                          ? 'bg-white text-black shadow-lg'
+                          : 'text-zinc-400 hover:text-white hover:bg-white/10'
+                      }`}
+                    >
+                      {cat}
+                    </button>
+                  ))}
+                </div>
+                <button 
+                  onClick={() => navigate('/history')}
+                  className="px-4 py-1.5 rounded-full text-xs font-medium transition-all text-zinc-400 hover:text-white hover:bg-white/10 bg-black/40 backdrop-blur-xl border border-white/10"
+                >
+                  History
+                </button>
               </div>
               <button 
                 onClick={handleLogout}
-                className="bg-white/10 hover:bg-white/20 backdrop-blur-md px-5 py-2 rounded-full text-white text-sm transition-all"
+                className="bg-white/10 hover:bg-white/20 backdrop-blur-xl px-5 py-2 rounded-full text-white text-sm transition-all border border-white/10"
               >
                 Logout
               </button>
             </div>
           </div>
-          <div className="h-full w-full overflow-y-scroll snap-y snap-mandatory scroll-smooth no-scrollbar">
-            {filteredAnnouncements.map((item) => (
-              <div key={item._id} className="w-full h-full snap-start relative flex items-end justify-center">
-                <div className="absolute inset-0 z-0">
-                  <img src={item.imageUrl} alt="bg" className="w-full h-full object-cover opacity-60" />
-                  <div className="absolute inset-0 bg-gradient-to-t from-black via-black/80 to-transparent" />
-                  <div className="absolute inset-0 bg-gradient-to-r from-black via-transparent to-black" />
-                </div>
-                <div className="relative z-10 w-full max-w-6xl mb-16 p-8 grid grid-cols-2 gap-12 items-end">
-                  <div>
-                    <div className="flex gap-3 mb-4">
-                      <span className="px-3 py-1 rounded-full bg-blue-600 text-white text-xs font-bold tracking-wide">
-                        {item.category || 'General'}
-                      </span>
-                      <span className="px-3 py-1 rounded-full bg-white/10 text-white/80 text-xs border border-white/10">
-                        {new Date(item.createdAt).toLocaleDateString()}
-                      </span>
-                    </div>
-                    <h1 className="text-5xl font-extrabold text-white leading-tight mb-6">{item.title}</h1>
-                  </div>
-                  <div className="flex flex-col items-start gap-6 border-l border-white/20 pl-8">
-                    <div className="max-h-[40vh] overflow-y-auto custom-scroll pr-4">
-                      <p className="text-lg text-zinc-300 leading-relaxed">{item.summary}</p>
-                    </div>
-                    <button 
-                      onClick={() => setSelectedAnnouncement(item)}
-                      className="group flex items-center gap-2 text-white font-semibold hover:text-blue-400 transition-colors shrink-0"
-                    >
-                      <span>Read Full Announcement</span>
-                      <svg className="w-5 h-5 group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 8l4 4m0 0l-4 4m4-4H3"></path></svg>
-                    </button>
-                  </div>
-                </div>
+          <div ref={desktopScrollRef} className="h-full w-full overflow-y-scroll snap-y snap-mandatory scroll-smooth no-scrollbar">
+            {filteredAnnouncements.length === 0 ? (
+              <div className="h-full w-full flex flex-col items-center justify-center">
+                <p className="text-zinc-400 text-2xl mb-2">No announcements in this category</p>
+                <p className="text-zinc-500 text-sm mb-6">Try selecting a different category</p>
+                <button 
+                  onClick={() => setSelectedCategory('All')}
+                  className="px-8 py-3 bg-white text-black rounded-full hover:bg-zinc-200 transition font-medium"
+                >
+                  View All Announcements
+                </button>
               </div>
-            ))}
+            ) : (
+              filteredAnnouncements.map((item) => (
+                <div key={item._id} className="w-full h-full snap-start relative flex items-end justify-center">
+                  <div className="absolute inset-0 z-0">
+                    <img src={item.imageUrl} alt="bg" className="w-full h-full object-cover opacity-60" />
+                    <div className="absolute inset-0 bg-gradient-to-t from-black via-black/80 to-transparent" />
+                    <div className="absolute inset-0 bg-gradient-to-r from-black via-transparent to-black" />
+                  </div>
+                  <div className="relative z-10 w-full max-w-6xl mb-16 p-8 grid grid-cols-2 gap-12 items-end">
+                    <div>
+                      <div className="flex gap-3 mb-4">
+                        <span className="px-3 py-1 rounded-full bg-blue-600 text-white text-xs font-bold tracking-wide">
+                          {item.category || 'General'}
+                        </span>
+                        <span className="px-3 py-1 rounded-full bg-white/10 text-white/80 text-xs border border-white/10">
+                          {new Date(item.createdAt).toLocaleDateString()}
+                        </span>
+                      </div>
+                      <h1 className="text-5xl font-extrabold text-white leading-tight mb-6">{item.title}</h1>
+                    </div>
+                    <div className="flex flex-col items-start gap-6 border-l border-white/20 pl-8">
+                      <div className="max-h-[40vh] overflow-y-auto custom-scroll pr-4">
+                        <p className="text-lg text-zinc-300 leading-relaxed">{item.summary}</p>
+                      </div>
+                      <button 
+                        onClick={() => setSelectedAnnouncement(item)}
+                        className="group flex items-center gap-2 text-white font-semibold hover:text-blue-400 transition-colors shrink-0"
+                      >
+                        <span>Read Full Announcement</span>
+                        <svg className="w-5 h-5 group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 8l4 4m0 0l-4 4m4-4H3"></path></svg>
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              ))
+            )}
           </div>
         </div>
 
         {/* ================= MODAL ================= */}
         <AnimatePresence>
           {selectedAnnouncement && (
-            <motion.div 
+            <Motion.div 
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               className="fixed inset-0 z-[60] flex items-center justify-center p-4 md:p-8 bg-black/95 backdrop-blur-sm"
               onClick={() => setSelectedAnnouncement(null)}
             >
-              <motion.div 
+              <Motion.div 
                 initial={{ scale: 0.95, opacity: 0, y: 20 }}
                 animate={{ scale: 1, opacity: 1, y: 0 }}
                 exit={{ scale: 0.95, opacity: 0, y: 20 }}
@@ -255,9 +398,51 @@ const StudentFeed = () => {
                   <div className="prose prose-invert prose-p:text-zinc-300 prose-headings:text-white max-w-none">
                     <p className="text-white whitespace-pre-wrap">{selectedAnnouncement.originalDescription}</p>
                   </div>
+
+                  {/* Attachments Section */}
+                  {selectedAnnouncement.attachments && selectedAnnouncement.attachments.length > 0 && (
+                    <div className="mt-8 pt-6 border-t border-zinc-700">
+                      <h3 className="text-white font-semibold mb-4 flex items-center gap-2">
+                        📎 Attachments ({selectedAnnouncement.attachments.length})
+                      </h3>
+                      <div className="space-y-2">
+                        {selectedAnnouncement.attachments.map((att) => {
+                          const ext = att.fileName.split('.').pop().toLowerCase();
+                          const iconMap = {
+                            pdf: '📕', doc: '📘', docx: '📘',
+                            xls: '📗', xlsx: '📗', ppt: '📙', pptx: '📙',
+                            txt: '📄', jpg: '🖼️', jpeg: '🖼️', png: '🖼️', gif: '🖼️',
+                            zip: '📦', rar: '📦'
+                          };
+                          const icon = iconMap[ext] || '📎';
+                          const fileSize = att.fileSize ? `${(att.fileSize / 1024).toFixed(1)} KB` : 'Unknown size';
+
+                          return (
+                            <a
+                              key={att._id}
+                              href={`${API_ENDPOINTS.BASE_URL}${att.fileUrl}`}
+                              download={att.fileName}
+                              className="flex items-center justify-between bg-zinc-800 hover:bg-zinc-700 p-4 rounded-lg transition-colors border border-zinc-700 hover:border-zinc-600 group"
+                            >
+                              <div className="flex items-center gap-3 flex-1 min-w-0">
+                                <span className="text-2xl">{icon}</span>
+                                <div className="min-w-0">
+                                  <p className="font-medium text-white truncate text-sm">{att.fileName}</p>
+                                  <p className="text-xs text-zinc-400">{fileSize}</p>
+                                </div>
+                              </div>
+                              <svg className="w-5 h-5 text-blue-400 group-hover:text-blue-300 flex-shrink-0 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                              </svg>
+                            </a>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  )}
                 </div>
-              </motion.div>
-            </motion.div>
+              </Motion.div>
+            </Motion.div>
           )}
         </AnimatePresence>
       </div>

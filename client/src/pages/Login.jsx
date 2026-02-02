@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
-import axios from 'axios';
+import axios from 'axios'; // Keep plain axios for login - this is where we GET the token
 import { useNavigate } from 'react-router-dom';
+import API_ENDPOINTS from '../config/api';
 
 const Login = () => {
   const [role, setRole] = useState('student');
@@ -11,13 +12,23 @@ const Login = () => {
 
   const handleLogin = async (e) => {
     e.preventDefault();
+    setError('');
     try {
-      const res = await axios.post('http://localhost:5001/api/auth/login', { regId, password });
-      if (res.data.role !== role) {
+      const res = await axios.post(API_ENDPOINTS.AUTH.LOGIN, { regId, password });
+      // Check if user role matches selected role
+      if (res.data.user.role !== role) {
         setError('Invalid role selected for this user');
         return;
       }
-      localStorage.setItem('user', JSON.stringify(res.data));
+      // Safely store user data
+      try {
+        localStorage.setItem('user', JSON.stringify(res.data));
+      } catch (storageErr) {
+        console.error('Failed to store user data:', storageErr);
+        setError('Failed to save login session');
+        return;
+      }
+      // Navigate after successful login
       if (role === 'teacher') {
         navigate('/dashboard');
       } else {
